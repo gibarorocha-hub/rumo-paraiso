@@ -16,8 +16,6 @@ body {
     padding:20px;
 }
 
-h1 { font-size:22px; }
-
 button {
     width:90%;
     max-width:400px;
@@ -28,17 +26,29 @@ button {
     font-size:18px;
 }
 
+.correct { background: green; }
+.wrong { background: red; }
+
+.progress {
+    width:90%;
+    max-width:400px;
+    height:10px;
+    background:#333;
+    margin:auto;
+    border-radius:5px;
+}
+
+.progress-bar {
+    height:10px;
+    background:lime;
+    width:0%;
+}
+
 input {
     padding:10px;
     border-radius:8px;
     border:none;
-    margin:10px;
     width:80%;
-}
-
-#topo {
-    display:flex;
-    justify-content:space-between;
 }
 
 .hidden { display:none; }
@@ -47,158 +57,155 @@ input {
 
 <body>
 
-<div id="topo">
-<button onclick="voltarMenu()">⬅️ Menu</button>
-</div>
-
-<h1>📖 Rumo ao Paraíso em Família</h1>
+<h1 onclick="admin()">📖 Rumo ao Paraíso em Família</h1>
 
 <div id="menu">
-<input id="nome" placeholder="Digite seu nome">
-<button onclick="start('t1')">📚 Tema 1</button>
-<button onclick="start('t2')">📚 Tema 2</button>
-<button onclick="start('t3')">📚 Tema 3</button>
-<button onclick="finalMode()">🧠 Modo Final 🔒</button>
-<button onclick="verRanking()">🏆 Ranking</button>
+<input id="nome" placeholder="Seu nome">
+
+<button onclick="start('t1')">📚 Lição 1</button>
+<button onclick="start('t2')">📚 Lição 2</button>
+<button onclick="start('t3')">📚 Lição 3</button>
+
+<button onclick="finalMode()">🧠 Final 🔒</button>
+<button onclick="ranking()">🏆 Ranking</button>
 </div>
 
 <div id="quiz" class="hidden">
+<div class="progress"><div id="bar" class="progress-bar"></div></div>
 <h2 id="q"></h2>
 <div id="opts"></div>
 <p id="f"></p>
 </div>
 
-<!-- 🔊 SOM LOCAL -->
 <audio id="somAcerto" src="Aplauso.mp3"></audio>
 <audio id="somErro" src="Vaia.mp3"></audio>
 
 <script>
 
-// 🔊 SOM
 function tocar(tipo){
-let audio = document.getElementById(
-    tipo === "acerto" ? "somAcerto" : "somErro"
-);
-audio.currentTime = 0;
-audio.play().catch(()=>{});
+let a = document.getElementById(tipo==="acerto"?"somAcerto":"somErro");
+a.currentTime=0;
+a.play().catch(()=>{});
 }
 
-// 📚 PERGUNTAS (base - depois coloco do livro)
+// 📖 PERGUNTAS REAIS DO LIVRO + BÍBLIA
 let temas = {
 
 t1:[
-["Quem é o verdadeiro Deus?",["Jeová","Pedro","Paulo"],0],
-["Devemos orar a quem?",["Jeová","Anjos","Qualquer um"],0],
-["Jeová é um Deus de?",["Confusão","Amor","Desordem"],1],
-["Quem criou tudo?",["Jeová","Homem","Natureza"],0],
-["Devemos confiar em?",["Jeová","Boatos","Qualquer um"],0],
-["Jeová quer que sejamos?",["Felizes","Maus","Confusos"],0],
-["Devemos estudar a Bíblia?",["Sim","Não","Talvez"],0],
-["A verdade vem de?",["Jeová","Internet","Qualquer um"],0],
-["Jeová se importa conosco?",["Sim","Não","Nunca"],0],
-["Devemos obedecer a Deus?",["Sim","Não","Talvez"],0]
+["Segundo João 17:3, o que leva à vida eterna?",["Conhecer a Deus","Ter dinheiro","Fama"],0],
+["O que diz Salmos 83:18?",["Deus se chama Jeová","Deus não tem nome","Existem vários deuses"],0],
+["Segundo a lição 1, por que conhecer a Deus é importante?",["Traz vida eterna","Não muda nada","Só curiosidade"],0],
+["A Bíblia traz o quê para nossa vida?",["Esperança","Medo","Confusão"],0],
+["Quem criou tudo segundo a Bíblia?",["Jeová","Homem","Natureza"],0]
 ],
 
 t2:[
-["A Bíblia é inspirada por?",["Homens","Jeová","Anjos"],1],
-["Qual livro ensina sobre Deus?",["Revista","Bíblia","Jornal"],1],
-["A Bíblia é útil para?",["Ensinar","Confundir","Ignorar"],0],
-["Devemos ler a Bíblia?",["Sim","Não","Nunca"],0],
-["A Bíblia contém?",["Verdades","Mentiras","Erros"],0],
-["A palavra de Deus é?",["Confiável","Falsa","Duvidosa"],0],
-["Devemos aplicar a Bíblia?",["Sim","Não","Talvez"],0],
-["A Bíblia ajuda a?",["Viver bem","Errar","Ignorar"],0],
-["A verdade está na?",["Bíblia","Internet","Pessoas"],0],
-["Devemos valorizar a Bíblia?",["Sim","Não","Talvez"],0]
+["Segundo a lição 2, a Bíblia é o quê?",["Palavra de Deus","Livro comum","História antiga"],0],
+["A Bíblia ajuda a fazer o quê?",["Viver melhor","Errar","Confundir"],0],
+["Segundo Provérbios 3:5, devemos confiar em quem?",["Jeová","Nós mesmos","Qualquer pessoa"],0],
+["Por que devemos ler a Bíblia?",["Para aprender a verdade","Para passar tempo","Não precisa"],0],
+["A Bíblia ensina o quê?",["O caminho certo","Nada útil","Confusão"],0]
 ],
 
 t3:[
-["Jeová quer que sejamos?",["Felizes","Maus","Confusos"],0],
-["A oração é falar com?",["Jeová","Amigos","Qualquer um"],0],
-["A Bíblia traz?",["Mentiras","Verdade","Dúvidas"],1],
-["Jeová se importa?",["Sim","Não","Nunca"],0],
-["Devemos obedecer?",["Sim","Não","Talvez"],0],
-["Jeová ouve orações?",["Sim","Não","Nunca"],0],
-["Devemos fazer o bem?",["Sim","Não","Talvez"],0],
-["Jeová é justo?",["Sim","Não","Talvez"],0],
-["Devemos confiar em Deus?",["Sim","Não","Talvez"],0],
-["A vida eterna é promessa?",["Sim","Não","Talvez"],0]
+["Segundo a lição 3, Deus quer que sejamos como?",["Felizes","Tristes","Confusos"],0],
+["O que a amizade com Deus traz?",["Alegria","Problemas","Nada"],0],
+["Segundo a Bíblia, devemos fazer o quê?",["O bem","O mal","Nada"],0],
+["Deus se importa conosco?",["Sim","Não","Nunca"],0],
+["A vida é o quê segundo o livro?",["Presente de Deus","Acaso","Sem valor"],0]
 ],
 
 final:[
-["Quem é o Deus verdadeiro?",["Jeová","Pedro","Paulo"],0],
-["Devemos confiar em quem?",["Jeová","Homens","Sorte"],0],
-["A Bíblia traz o que?",["Mentira","Verdade","Confusão"],1],
-["Jeová quer que sejamos?",["Felizes","Maus","Confusos"],0],
-["Devemos orar?",["Sim","Não","Nunca"],0]
+["O que leva à vida eterna?",["Conhecer a Deus","Dinheiro","Sorte"],0],
+["Quem é o Deus verdadeiro?",["Jeová","Qualquer um","Ninguém"],0],
+["A Bíblia traz o quê?",["Verdade","Mentira","Confusão"],0]
 ]
 
 };
 
-// 🎮 CONTROLE
 let atual=0, acertos=0, lista=[], temaAtual="", jogador="";
 
 function start(t){
 jogador = document.getElementById("nome").value || "Anônimo";
+
+let score = localStorage.getItem(jogador+"_"+t);
+if(score && score>=80){
+alert("🔒 Tema já concluído!");
+return;
+}
+
 temaAtual=t;
 lista=temas[t];
 atual=0;
 acertos=0;
+
 menu.style.display="none";
 quiz.classList.remove("hidden");
+
 load();
 }
 
 function load(){
 let q=lista[atual];
-document.getElementById("q").innerText=q[0];
+qEl.innerText=q[0];
+
+bar.style.width=((atual/lista.length)*100)+"%";
+
 let html="";
 q[1].forEach((op,i)=>{
-html+=`<button onclick="responder(${i})">${op}</button><br>`;
+html+=`<button onclick="resp(${i},this)">${op}</button>`;
 });
-document.getElementById("opts").innerHTML=html;
+opts.innerHTML=html;
 }
 
-function responder(i){
+function resp(i,btn){
 let certo=lista[atual][2];
 
 if(i===certo){
 acertos++;
-document.getElementById("f").innerText="🔥 BOA!";
+btn.classList.add("correct");
 tocar("acerto");
 }else{
-let zoeira=["💀 ERROU!","😂 Foi na fé!","😈 Vacilou!"];
-document.getElementById("f").innerText=zoeira[Math.floor(Math.random()*zoeira.length)];
+btn.classList.add("wrong");
 tocar("erro");
 }
 
+setTimeout(()=>{
 atual++;
-
-if(atual<lista.length){
-setTimeout(()=>{f.innerText="";load()},1500);
-}else{
-fim();
-}
+if(atual<lista.length){ load(); } else { fim(); }
+},1000);
 }
 
 function fim(){
 let pct=(acertos/lista.length)*100;
 
-// salva progresso
-localStorage.setItem(temaAtual,pct);
+localStorage.setItem(jogador+"_"+temaAtual,pct);
 
-// salva ranking
-let ranking = JSON.parse(localStorage.getItem("ranking") || "[]");
+let hist = JSON.parse(localStorage.getItem("hist")||"[]");
+hist.push({
+nome:jogador,
+tema:temaAtual,
+pontos:pct,
+data:new Date().toLocaleString()
+});
+localStorage.setItem("hist",JSON.stringify(hist));
+
+let ranking = JSON.parse(localStorage.getItem("ranking")||"[]");
+let existente = ranking.find(r=>r.nome===jogador);
+
+if(!existente || existente.pontos<pct){
+ranking = ranking.filter(r=>r.nome!==jogador);
 ranking.push({nome:jogador,pontos:pct});
+}
 localStorage.setItem("ranking",JSON.stringify(ranking));
 
-quiz.innerHTML="<h2>"+pct.toFixed(0)+"%</h2><button onclick='voltarMenu()'>Voltar</button>";
+quiz.innerHTML="<h2>"+pct.toFixed(0)+"%</h2><button onclick='location.reload()'>Menu</button>";
 }
 
 function finalMode(){
-let t1=localStorage.getItem("t1")||0;
-let t2=localStorage.getItem("t2")||0;
-let t3=localStorage.getItem("t3")||0;
+let t1=localStorage.getItem(jogador+"_t1")||0;
+let t2=localStorage.getItem(jogador+"_t2")||0;
+let t3=localStorage.getItem(jogador+"_t3")||0;
 
 if(t1>=80 && t2>=80 && t3>=80){
 start("final");
@@ -207,22 +214,27 @@ alert("🚫 Precisa de 80% em tudo!");
 }
 }
 
-function voltarMenu(){
-location.reload();
-}
-
-function verRanking(){
-let ranking = JSON.parse(localStorage.getItem("ranking") || "[]");
-
-let html="<h2>🏆 Ranking</h2>";
-
+function ranking(){
+let ranking = JSON.parse(localStorage.getItem("ranking")||"[]");
 ranking.sort((a,b)=>b.pontos-a.pontos);
 
-ranking.forEach(r=>{
-html+=`<p>${r.nome} - ${r.pontos.toFixed(0)}%</p>`;
+let html="<h2>🏆 Ranking</h2>";
+ranking.slice(0,3).forEach((r,i)=>{
+html+=`<p>${i+1}º ${r.nome} - ${r.pontos}%</p>`;
 });
+html+="<button onclick='location.reload()'>Voltar</button>";
 
-html+="<button onclick='voltarMenu()'>Voltar</button>";
+menu.innerHTML=html;
+}
+
+function admin(){
+let hist = JSON.parse(localStorage.getItem("hist")||"[]");
+
+let html="<h2>📊 Controle</h2>";
+hist.forEach(h=>{
+html+=`<p>${h.nome} - ${h.tema} - ${h.pontos}% - ${h.data}</p>`;
+});
+html+="<button onclick='location.reload()'>Voltar</button>";
 
 menu.innerHTML=html;
 }
