@@ -2,10 +2,36 @@
 <html>
 <head>
 <meta charset="UTF-8">
+
+<!-- 🔥 ISSO AQUI RESOLVE O ZOOM -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Rumo ao Paraíso em Família</title>
+
 <style>
-body { font-family: Arial; text-align: center; background:#111; color:#fff; }
-button { margin:10px; padding:12px; border:none; border-radius:8px; font-size:16px; }
+body {
+    font-family: Arial;
+    text-align: center;
+    background:#111;
+    color:#fff;
+    margin:0;
+    padding:20px;
+}
+
+h1 {
+    font-size:22px;
+}
+
+button {
+    width:90%;
+    max-width:400px;
+    margin:10px;
+    padding:15px;
+    border:none;
+    border-radius:10px;
+    font-size:18px;
+}
+
 .hidden { display:none; }
 </style>
 </head>
@@ -27,16 +53,28 @@ button { margin:10px; padding:12px; border:none; border-radius:8px; font-size:16
 <p id="f"></p>
 </div>
 
-<!-- Sons -->
-<audio id="acerto" preload="auto">
-<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8f6c1.mp3">
-</audio>
-
-<audio id="erro" preload="auto">
-<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_5b4f3c.mp3">
-</audio>
-
 <script>
+
+// 🔊 SOM FUNCIONANDO 100% NO IPHONE
+function tocar(tipo){
+let ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+let freq = tipo === "acerto" ? 800 : 200;
+
+let osc = ctx.createOscillator();
+let gain = ctx.createGain();
+
+osc.connect(gain);
+gain.connect(ctx.destination);
+
+osc.frequency.value = freq;
+osc.type = "sine";
+
+gain.gain.setValueAtTime(0.2, ctx.currentTime);
+
+osc.start();
+osc.stop(ctx.currentTime + 0.3);
+}
 
 let temas = {
 
@@ -109,12 +147,6 @@ q[1].forEach((op,i)=>{
 html+=`<button onclick="responder(${i})">${op}</button><br>`;
 });
 document.getElementById("opts").innerHTML=html;
-}
-
-function tocar(id){
-let audio=document.getElementById(id);
-audio.currentTime=0;
-audio.play().catch(()=>{});
 }
 
 function responder(i){
