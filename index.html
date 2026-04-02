@@ -2,8 +2,6 @@
 <html>
 <head>
 <meta charset="UTF-8">
-
-<!-- 🔥 ISSO AQUI RESOLVE O ZOOM -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <title>Rumo ao Paraíso em Família</title>
@@ -18,9 +16,7 @@ body {
     padding:20px;
 }
 
-h1 {
-    font-size:22px;
-}
+h1 { font-size:22px; }
 
 button {
     width:90%;
@@ -53,29 +49,32 @@ button {
 <p id="f"></p>
 </div>
 
+<!-- 🔊 SOM REAL -->
+<audio id="somAcerto" preload="auto">
+<source src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_12b0c744.mp3">
+</audio>
+
+<audio id="somErro" preload="auto">
+<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_5b4f3c.mp3">
+</audio>
+
 <script>
 
-// 🔊 SOM FUNCIONANDO 100% NO IPHONE
+// 🔊 FUNÇÃO DE SOM REAL
 function tocar(tipo){
-let ctx = new (window.AudioContext || window.webkitAudioContext)();
+let audio = document.getElementById(
+    tipo === "acerto" ? "somAcerto" : "somErro"
+);
 
-let freq = tipo === "acerto" ? 800 : 200;
+audio.currentTime = 0;
+let playPromise = audio.play();
 
-let osc = ctx.createOscillator();
-let gain = ctx.createGain();
-
-osc.connect(gain);
-gain.connect(ctx.destination);
-
-osc.frequency.value = freq;
-osc.type = "sine";
-
-gain.gain.setValueAtTime(0.2, ctx.currentTime);
-
-osc.start();
-osc.stop(ctx.currentTime + 0.3);
+if (playPromise !== undefined) {
+    playPromise.catch(()=>{});
+}
 }
 
+// 📚 TEMAS
 let temas = {
 
 t1:[
@@ -127,6 +126,7 @@ final:[
 
 };
 
+// 🎮 CONTROLE
 let atual=0, acertos=0, lista=[], temaAtual="";
 
 function start(t){
