@@ -28,19 +28,38 @@ button {
     font-size:18px;
 }
 
+input {
+    padding:10px;
+    border-radius:8px;
+    border:none;
+    margin:10px;
+    width:80%;
+}
+
+#topo {
+    display:flex;
+    justify-content:space-between;
+}
+
 .hidden { display:none; }
 </style>
 </head>
 
 <body>
 
+<div id="topo">
+<button onclick="voltarMenu()">⬅️ Menu</button>
+</div>
+
 <h1>📖 Rumo ao Paraíso em Família</h1>
 
 <div id="menu">
+<input id="nome" placeholder="Digite seu nome">
 <button onclick="start('t1')">📚 Tema 1</button>
 <button onclick="start('t2')">📚 Tema 2</button>
 <button onclick="start('t3')">📚 Tema 3</button>
 <button onclick="finalMode()">🧠 Modo Final 🔒</button>
+<button onclick="verRanking()">🏆 Ranking</button>
 </div>
 
 <div id="quiz" class="hidden">
@@ -49,32 +68,22 @@ button {
 <p id="f"></p>
 </div>
 
-<!-- 🔊 SOM REAL -->
-<audio id="somAcerto" preload="auto">
-<source src="https://cdn.pixabay.com/download/audio/2021/08/04/audio_12b0c744.mp3">
-</audio>
-
-<audio id="somErro" preload="auto">
-<source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_5b4f3c.mp3">
-</audio>
+<!-- 🔊 SOM LOCAL -->
+<audio id="somAcerto" src="Aplauso.mp3"></audio>
+<audio id="somErro" src="Vaia.mp3"></audio>
 
 <script>
 
-// 🔊 FUNÇÃO DE SOM REAL
+// 🔊 SOM
 function tocar(tipo){
 let audio = document.getElementById(
     tipo === "acerto" ? "somAcerto" : "somErro"
 );
-
 audio.currentTime = 0;
-let playPromise = audio.play();
-
-if (playPromise !== undefined) {
-    playPromise.catch(()=>{});
-}
+audio.play().catch(()=>{});
 }
 
-// 📚 TEMAS
+// 📚 PERGUNTAS (base - depois coloco do livro)
 let temas = {
 
 t1:[
@@ -127,9 +136,10 @@ final:[
 };
 
 // 🎮 CONTROLE
-let atual=0, acertos=0, lista=[], temaAtual="";
+let atual=0, acertos=0, lista=[], temaAtual="", jogador="";
 
 function start(t){
+jogador = document.getElementById("nome").value || "Anônimo";
 temaAtual=t;
 lista=temas[t];
 atual=0;
@@ -154,15 +164,10 @@ let certo=lista[atual][2];
 
 if(i===certo){
 acertos++;
-document.getElementById("f").innerText="🔥 BOA! Tá sabendo!";
+document.getElementById("f").innerText="🔥 BOA!";
 tocar("acerto");
 }else{
-let zoeira=[
-"💀 Misericórdia… errou feio!",
-"😂 Foi na fé e errou!",
-"🙏 Bora estudar mais!",
-"😈 Vacilou hein!"
-];
+let zoeira=["💀 ERROU!","😂 Foi na fé!","😈 Vacilou!"];
 document.getElementById("f").innerText=zoeira[Math.floor(Math.random()*zoeira.length)];
 tocar("erro");
 }
@@ -178,15 +183,16 @@ fim();
 
 function fim(){
 let pct=(acertos/lista.length)*100;
+
+// salva progresso
 localStorage.setItem(temaAtual,pct);
 
-let msg="Você fez "+pct.toFixed(0)+"%";
+// salva ranking
+let ranking = JSON.parse(localStorage.getItem("ranking") || "[]");
+ranking.push({nome:jogador,pontos:pct});
+localStorage.setItem("ranking",JSON.stringify(ranking));
 
-if(pct>=80){
-msg+="\n🔥 Tema concluído!";
-}
-
-quiz.innerHTML="<h2>"+msg+"</h2><button onclick='location.reload()'>Voltar</button>";
+quiz.innerHTML="<h2>"+pct.toFixed(0)+"%</h2><button onclick='voltarMenu()'>Voltar</button>";
 }
 
 function finalMode(){
@@ -195,16 +201,30 @@ let t2=localStorage.getItem("t2")||0;
 let t3=localStorage.getItem("t3")||0;
 
 if(t1>=80 && t2>=80 && t3>=80){
-temaAtual="final";
-lista=temas["final"];
-atual=0;
-acertos=0;
-menu.style.display="none";
-quiz.classList.remove("hidden");
-load();
+start("final");
 }else{
-alert("🚫 Precisa fazer 80% em todos os temas!");
+alert("🚫 Precisa de 80% em tudo!");
 }
+}
+
+function voltarMenu(){
+location.reload();
+}
+
+function verRanking(){
+let ranking = JSON.parse(localStorage.getItem("ranking") || "[]");
+
+let html="<h2>🏆 Ranking</h2>";
+
+ranking.sort((a,b)=>b.pontos-a.pontos);
+
+ranking.forEach(r=>{
+html+=`<p>${r.nome} - ${r.pontos.toFixed(0)}%</p>`;
+});
+
+html+="<button onclick='voltarMenu()'>Voltar</button>";
+
+menu.innerHTML=html;
 }
 
 </script>
