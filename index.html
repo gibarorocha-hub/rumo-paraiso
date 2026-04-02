@@ -5,7 +5,7 @@
 <title>Rumo ao Paraíso em Família</title>
 <style>
 body { font-family: Arial; text-align: center; background:#111; color:#fff; }
-button { margin:10px; padding:10px; border:none; border-radius:8px; }
+button { margin:10px; padding:12px; border:none; border-radius:8px; font-size:16px; }
 .hidden { display:none; }
 </style>
 </head>
@@ -13,10 +13,12 @@ button { margin:10px; padding:10px; border:none; border-radius:8px; }
 <body>
 
 <h1>📖 Rumo ao Paraíso em Família</h1>
-<p>🙏 Bem-vindos! Vamos aprender juntos rumo ao paraíso.</p>
 
 <div id="menu">
-<button onclick="start()">📚 Tema 1</button>
+<button onclick="start('t1')">📚 Tema 1</button>
+<button onclick="start('t2')">📚 Tema 2</button>
+<button onclick="start('t3')">📚 Tema 3</button>
+<button onclick="final()">🧠 Modo Final 🔒</button>
 </div>
 
 <div id="quiz" class="hidden">
@@ -25,45 +27,85 @@ button { margin:10px; padding:10px; border:none; border-radius:8px; }
 <p id="f"></p>
 </div>
 
+<audio id="acerto" src="https://www.soundjay.com/human/applause-8.mp3"></audio>
+<audio id="erro" src="https://www.soundjay.com/human/boo-01.mp3"></audio>
+
 <script>
-let p=[
-["Quem é o verdadeiro Deus?",["Jeová","Moisés","Pedro"],0],
-["A Bíblia é inspirada por quem?",["Homens","Jeová","Anjos"],1],
-["Quem criou tudo?",["Jeová","Homem","Natureza"],0]
-];
 
-let i=0,a=0;
+let temas = {
+t1:[
+["Quem é o verdadeiro Deus?",["Jeová","Pedro","Paulo"],0],
+["Devemos orar a quem?",["Jeová","Anjos","Qualquer um"],0]
+],
+t2:[
+["A Bíblia é inspirada por?",["Homens","Jeová","Anjos"],1],
+["Quem criou tudo?",["Homem","Jeová","Natureza"],1]
+],
+t3:[
+["Jeová quer que sejamos?",["Tristes","Felizes","Maus"],1],
+["Devemos estudar a Bíblia?",["Não","Sim","Talvez"],1]
+]
+};
 
-function start(){
-document.getElementById("menu").style.display="none";
-document.getElementById("quiz").classList.remove("hidden");
+let atual=0, acertos=0, lista=[];
+
+function start(t){
+lista=temas[t];
+atual=0;
+acertos=0;
+menu.style.display="none";
+quiz.classList.remove("hidden");
 load();
 }
 
 function load(){
-let q=p[i];
+let q=lista[atual];
 document.getElementById("q").innerText=q[0];
 let html="";
-q[1].forEach((op,idx)=>{
-html+=`<button onclick="ans(${idx})">${op}</button><br>`;
+q[1].forEach((op,i)=>{
+html+=`<button onclick="ans(${i})">${op}</button><br>`;
 });
 document.getElementById("opts").innerHTML=html;
 }
 
-function ans(x){
-if(x===p[i][2]){
-a++; document.getElementById("f").innerText="🔥 Acertou!";
+function ans(i){
+let certo=lista[atual][2];
+
+if(i===certo){
+acertos++;
+document.getElementById("f").innerText="🔥 BOAAAAA!";
+document.getElementById("acerto").play();
 }else{
-document.getElementById("f").innerText="💀 Errou feio!";
+let zoeira=["💀 Misericórdia!","😂 Foi na fé e errou!","🙏 Bora estudar mais!"];
+document.getElementById("f").innerText=zoeira[Math.floor(Math.random()*zoeira.length)];
+document.getElementById("erro").play();
 }
-i++;
-if(i<p.length){
-setTimeout(()=>{document.getElementById("f").innerText="";load()},1000);
+
+atual++;
+
+if(atual<lista.length){
+setTimeout(()=>{f.innerText="";load()},1500);
 }else{
-document.getElementById("q").innerText="Fim! "+a+" acertos";
-document.getElementById("opts").innerHTML="";
+fim();
 }
 }
+
+function fim(){
+let pct=(acertos/lista.length)*100;
+let msg="Você fez "+pct.toFixed(0)+"%";
+
+if(pct>=80){
+msg+="\n🔥 Tema concluído!";
+localStorage.setItem("ok"+lista.length,true);
+}
+
+quiz.innerHTML="<h2>"+msg+"</h2><button onclick='location.reload()'>Voltar</button>";
+}
+
+function final(){
+alert("🔥 Modo final em breve!");
+}
+
 </script>
 
 </body>
