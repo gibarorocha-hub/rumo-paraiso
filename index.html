@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Rumo ao Paraíso em Família</title>
+<style>
+body { font-family: Arial; text-align: center; background:#111; color:#fff; }
+button { margin:10px; padding:10px; border:none; border-radius:8px; }
+.hidden { display:none; }
+</style>
+</head>
+
+<body>
+
+<h1>📖 Rumo ao Paraíso em Família</h1>
+<p>🙏 Bem-vindos! Vamos aprender juntos rumo ao paraíso.</p>
+
+<div id="menu">
+<button onclick="start()">📚 Tema 1</button>
+</div>
+
+<div id="quiz" class="hidden">
+<h2 id="q"></h2>
+<div id="opts"></div>
+<p id="f"></p>
+</div>
+
+<script>
+let p=[
+["Quem é o verdadeiro Deus?",["Jeová","Moisés","Pedro"],0],
+["A Bíblia é inspirada por quem?",["Homens","Jeová","Anjos"],1],
+["Quem criou tudo?",["Jeová","Homem","Natureza"],0]
+];
+
+let i=0,a=0;
+
+function start(){
+document.getElementById("menu").style.display="none";
+document.getElementById("quiz").classList.remove("hidden");
+load();
+}
+
+function load(){
+let q=p[i];
+document.getElementById("q").innerText=q[0];
+let html="";
+q[1].forEach((op,idx)=>{
+html+=`<button onclick="ans(${idx})">${op}</button><br>`;
+});
+document.getElementById("opts").innerHTML=html;
+}
+
+function ans(x){
+if(x===p[i][2]){
+a++; document.getElementById("f").innerText="🔥 Acertou!";
+}else{
+document.getElementById("f").innerText="💀 Errou feio!";
+}
+i++;
+if(i<p.length){
+setTimeout(()=>{document.getElementById("f").innerText="";load()},1000);
+}else{
+document.getElementById("q").innerText="Fim! "+a+" acertos";
+document.getElementById("opts").innerHTML="";
+}
+}
+</script>
+
+</body>
+</html>
