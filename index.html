@@ -6,33 +6,33 @@
     <title>Quiz Bíblico PRO</title>
     <style>
         body { font-family: sans-serif; text-align:center; background:#111; color:#fff; margin:0; padding:20px; }
-        input { padding:15px; border-radius:8px; border:none; width:85%; margin-bottom:10px; font-size:16px; }
+        input { padding:15px; border-radius:8px; border:none; width:85%; margin-bottom:10px; font-size:16px; background: #222; color: #fff; border: 1px solid #444; }
         button { width:90%; max-width:400px; margin:8px; padding:15px; border:none; border-radius:10px; cursor:pointer; font-size:16px; font-weight:bold; }
         .tema-btn { background: #007bff; color: white; }
         .opt-btn { background: #333; color: white; border: 1px solid #555; }
-        .correct { background: green !important; }
+        .correct { background: green ! immortality !important; }
         .wrong { background: red !important; }
-        #f { font-size: 1.2em; margin: 15px; color: yellow; }
+        #f { font-size: 1.2em; margin: 15px; color: yellow; min-height: 1.2em; }
         .progress { width:90%; height:10px; background:#333; margin:10px auto; border-radius:5px; overflow:hidden; }
         #bar { height:100%; background:lime; width:0%; transition: 0.3s; }
     </style>
 </head>
 <body>
 
-<h1 onclick="adminClick()">📖 Quiz Bíblico PRO</h1>
+<h1 id="titulo">📖 Quiz Bíblico PRO</h1>
 
 <!-- TELA DE LOGIN -->
 <div id="loginBox">
-    <input id="nomeInput" placeholder="Digite seu nome">
-    <button onclick="login()" style="background: lime; color: #000;">INICIAR</button>
+    <p>Digite seu nome para jogar:</p>
+    <input id="nomeInput" placeholder="Seu nome..."><br>
+    <button onclick="login()" style="background: lime; color: #000;">INICIAR JOGO</button>
 </div>
 
 <!-- MENU PRINCIPAL -->
 <div id="menu" style="display:none;">
     <p>Bem-vindo, <span id="userText" style="color:lime"></span>!</p>
     <div id="botoesTemas"></div>
-    <button onclick="verRanking()" style="background: orange;">🏆 Ranking</button>
-    <button onclick="location.reload()">Sair</button>
+    <button onclick="location.reload()" style="background: #555; color: white;">Sair</button>
 </div>
 
 <!-- TELA DO QUIZ -->
@@ -41,30 +41,11 @@
     <h2 id="perguntaTexto"></h2>
     <div id="opcoesDiv"></div>
     <p id="f"></p>
-    <button onclick="voltarMenu()" id="btnVoltar" style="display:none; background:#444;">Voltar ao Menu</button>
+    <button onclick="voltarMenu()" id="btnVoltar" style="display:none; background:#444; color: white;">Voltar ao Menu</button>
 </div>
 
-<!-- PAINEL ADMIN -->
-<div id="adminPanel" style="display:none;">
-    <h2>ADMIN</h2>
-    <div id="dadosAdmin"></div>
-    <button onclick="location.reload()">Fechar</button>
-</div>
-
-<script type="module">
-import { initializeApp } from "https://gstatic.com";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, doc, deleteDoc } from "https://gstatic.com";
-
-const firebaseConfig = {
-    apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
-    authDomain: "://firebaseapp.com",
-    projectId: "quiz-biblico-e1362"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// Dados do Jogo
+<script>
+// Dados do Jogo (Local)
 let jogador = "";
 let perguntasAtuais = [];
 let indice = 0;
@@ -72,13 +53,19 @@ let pontos = 0;
 
 const temas = {
     t1: { nome: "Conhecer a Deus", p: [["Qual o nome de Deus?", ["Jeová", "Jesus", "Maria"], 0], ["Quem criou tudo?", ["Deus", "Homem", "Natureza"], 0]] },
-    t2: { nome: "A Bíblia", p: [["A Bíblia é?", ["Palavra de Deus", "Livro comum", "História"], 0], ["Devemos ler a Bíblia?", ["Sim", "Não", "Às vezes"], 0]] }
+    t2: { nome: "A Bíblia", p: [["A Bíblia é?", ["Palavra de Deus", "Livro comum", "História"], 0], ["Devemos ler a Bíblia?", ["Sim", "Não", "Às vezes"], 0]] },
+    t3: { nome: "Oração", p: [["Orar é?", ["Falar com Deus", "Pensar", "Nada"], 0], ["Deus ouve?", ["Sim", "Não", "Talvez"], 0]] }
 };
 
-// Funções Globais (necessário window para o GitHub)
-window.login = () => {
-    jogador = document.getElementById("nomeInput").value.trim();
-    if(!jogador) return alert("Digite seu nome!");
+// Funções de Navegação
+function login() {
+    const input = document.getElementById("nomeInput");
+    jogador = input.value.trim();
+    
+    if(jogador === "") {
+        alert("Por favor, digite seu nome!");
+        return;
+    }
     
     document.getElementById("loginBox").style.display = "none";
     document.getElementById("menu").style.display = "block";
@@ -90,14 +77,15 @@ window.login = () => {
         let b = document.createElement("button");
         b.innerText = temas[id].nome;
         b.className = "tema-btn";
-        b.onclick = () => iniciarQuiz(id);
+        b.onclick = function() { iniciarQuiz(id); };
         container.appendChild(b);
     }
-};
+}
 
 function iniciarQuiz(id) {
     perguntasAtuais = temas[id].p;
-    indice = 0; pontos = 0;
+    indice = 0; 
+    pontos = 0;
     document.getElementById("menu").style.display = "none";
     document.getElementById("quiz").style.display = "block";
     document.getElementById("btnVoltar").style.display = "none";
@@ -106,19 +94,23 @@ function iniciarQuiz(id) {
 
 function mostrarPergunta() {
     document.getElementById("f").innerText = "";
-    if(indice >= perguntasAtuais.length) return finalizar();
+    if(indice >= perguntasAtuais.length) {
+        finalizar();
+        return;
+    }
     
-    let dados = perguntasAtuais[indice];
+    let dados = perguntasAtuais[indice]; // [pergunta, [opções], indexCerto]
     document.getElementById("perguntaTexto").innerText = dados[0];
     document.getElementById("bar").style.width = (indice / perguntasAtuais.length * 100) + "%";
     
     const div = document.getElementById("opcoesDiv");
     div.innerHTML = "";
+    
     dados[1].forEach((txt, i) => {
         let b = document.createElement("button");
         b.innerText = txt;
         b.className = "opt-btn";
-        b.onclick = () => checar(i, dados[2]);
+        b.onclick = function() { checar(i, dados[2]); };
         div.appendChild(b);
     });
 }
@@ -129,67 +121,32 @@ function checar(escolha, certa) {
     
     if(escolha === certa) {
         pontos++;
-        btns[escolha].classList.add("correct");
-        document.getElementById("f").innerText = "🔥 Acertou!";
+        btns[escolha].style.background = "green";
+        document.getElementById("f").innerText = "🔥 Resposta Correta!";
     } else {
-        btns[escolha].classList.add("wrong");
-        btns[certa].classList.add("correct");
-        document.getElementById("f").innerText = "❌ Errou!";
+        btns[escolha].style.background = "red";
+        btns[certa].style.background = "green";
+        document.getElementById("f").innerText = "❌ Você errou!";
     }
     
-    setTimeout(() => { indice++; mostrarPergunta(); }, 1500);
+    setTimeout(() => { 
+        indice++; 
+        mostrarPergunta(); 
+    }, 1500);
 }
 
-async function finalizar() {
-    document.getElementById("perguntaTexto").innerText = `Fim! Pontos: ${pontos}`;
-    document.getElementById("opcoesDiv").innerHTML = "";
+function finalizar() {
+    document.getElementById("perguntaTexto").innerText = "Fim do Jogo!";
+    document.getElementById("opcoesDiv").innerHTML = "<h3>Você acertou " + pontos + " de " + perguntasAtuais.length + "</h3>";
+    document.getElementById("bar").style.width = "100%";
     document.getElementById("btnVoltar").style.display = "block";
-    
-    try {
-        await addDoc(collection(db, "ranking"), { nome: jogador, pontos: pontos, data: new Date() });
-    } catch(e) { console.log(e); }
+    document.getElementById("f").innerText = "Parabéns, " + jogador + "!";
 }
 
-window.verRanking = async () => {
-    const q = query(collection(db, "ranking"), orderBy("pontos", "desc"), limit(5));
-    const snap = await getDocs(q);
-    let txt = "🏆 TOP 5:\n";
-    snap.forEach(d => txt += `${d.data().nome}: ${d.data().pontos} pts\n`);
-    alert(txt);
-};
-
-window.voltarMenu = () => {
+function voltarMenu() {
     document.getElementById("quiz").style.display = "none";
     document.getElementById("menu").style.display = "block";
-};
-
-// Admin oculto (5 cliques no título)
-let cliques = 0;
-window.adminClick = () => {
-    cliques++;
-    if(cliques >= 5) {
-        document.getElementById("menu").style.display = "none";
-        document.getElementById("adminPanel").style.display = "block";
-        abrirAdmin();
-    }
-};
-
-async function abrirAdmin() {
-    const box = document.getElementById("dadosAdmin");
-    box.innerText = "Carregando...";
-    const snap = await getDocs(collection(db, "ranking"));
-    box.innerHTML = "";
-    snap.forEach(d => {
-        box.innerHTML += `<p>${d.data().nome} - ${d.data().pontos} <button onclick="apagar('${d.id}')">X</button></p>`;
-    });
 }
-
-window.apagar = async (id) => {
-    if(confirm("Apagar?")) {
-        await deleteDoc(doc(db, "ranking", id));
-        abrirAdmin();
-    }
-};
 </script>
 </body>
 </html>
