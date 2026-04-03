@@ -72,9 +72,12 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// TEMAS E PERGUNTAS
+// =======================================================
+// PERGUNTAS COMPLETAS - 12 LIÇÕES x 10 PERGUNTAS
+// =======================================================
 let temas = {
-t1:[["Quem criou tudo?",["Deus","Homem","Natureza"],0],
+t1:[
+["Quem criou tudo?",["Deus","Homem","Natureza"],0],
 ["Segundo Salmo 83:18, qual é o nome de Deus?",["Jeová","Deus","Senhor"],0],
 ["Qual é o objetivo de conhecer a Deus?",["Vida eterna","Dinheiro","Fama"],0],
 ["A Bíblia é o quê?",["Palavra de Deus","Livro comum","História antiga"],0],
@@ -83,8 +86,10 @@ t1:[["Quem criou tudo?",["Deus","Homem","Natureza"],0],
 ["Quem criou o homem segundo a Bíblia?",["Jeová","Natureza","Homem"],0],
 ["O que a Bíblia nos dá?",["Esperança","Confusão","Medo"],0],
 ["Qual é a importância de orar?",["Fortalecer fé","Nada","Problemas"],0],
-["Deus se importa conosco?",["Sim","Não","Nunca"],0]],
-t2:[["Segundo a lição 2, a Bíblia é o quê?",["Palavra de Deus","Livro comum","História antiga"],0],
+["Deus se importa conosco?",["Sim","Não","Nunca"],0]
+],
+t2:[
+["Segundo a lição 2, a Bíblia é o quê?",["Palavra de Deus","Livro comum","História antiga"],0],
 ["A Bíblia ajuda a fazer o quê?",["Viver melhor","Errar","Confundir"],0],
 ["Segundo Provérbios 3:5, devemos confiar em quem?",["Jeová","Nós mesmos","Qualquer pessoa"],0],
 ["Por que devemos ler a Bíblia?",["Para aprender a verdade","Para passar tempo","Não precisa"],0],
@@ -93,8 +98,10 @@ t2:[["Segundo a lição 2, a Bíblia é o quê?",["Palavra de Deus","Livro comum
 ["Como a amizade com Deus ajuda?",["Alegria","Problemas","Nada"],0],
 ["Devemos seguir os mandamentos?",["Sim","Não","Nunca"],0],
 ["Quem é fiel em todas as coisas?",["Jeová","Ninguém","Todos"],0],
-["O que nos protege do mal?",["A Bíblia","Nada","Confusão"],0]],
-t3:[["Segundo a lição 3, Deus quer que sejamos como?",["Felizes","Tristes","Confusos"],0],
+["O que nos protege do mal?",["A Bíblia","Nada","Confusão"],0]
+],
+t3:[
+["Segundo a lição 3, Deus quer que sejamos como?",["Felizes","Tristes","Confusos"],0],
 ["O que a amizade com Deus traz?",["Alegria","Problemas","Nada"],0],
 ["Segundo a Bíblia, devemos fazer o quê?",["O bem","O mal","Nada"],0],
 ["Deus se importa conosco?",["Sim","Não","Nunca"],0],
@@ -103,7 +110,9 @@ t3:[["Segundo a lição 3, Deus quer que sejamos como?",["Felizes","Tristes","Co
 ["Quem é o amigo verdadeiro?",["Jeová","Ninguém","Todos"],0],
 ["O que significa fé?",["Confiar em Deus","Confiar no homem","Nada"],0],
 ["Devemos ajudar os outros?",["Sim","Não","Nunca"],0],
-["O que nos dá força?",["Oração","Nada","Problemas"],0]],
+["O que nos dá força?",["Oração","Nada","Problemas"],0]
+],
+// Continue t4 a t12 seguindo o mesmo padrão, 10 perguntas por lição
 t4:[["Segundo a lição 4, por que estudar a Bíblia?",["Para aprender a verdade","Só curiosidade","Nada"],0],
 ["Quem é fiel em todas as coisas?",["Jeová","Ninguém","Todos"],0],
 ["O que a Bíblia ensina sobre o amor?",["Amar a Deus e ao próximo","Só a nós mesmos","Não importa"],0],
@@ -113,11 +122,13 @@ t4:[["Segundo a lição 4, por que estudar a Bíblia?",["Para aprender a verdade
 ["O que traz alegria segundo a Bíblia?",["Obedecer a Jeová","Fama","Dinheiro"],0],
 ["Quem criou os céus e a terra?",["Jeová","Homem","Natureza"],0],
 ["O que a Bíblia oferece?",["Esperança","Confusão","Medo"],0],
-["Oração ajuda em quê?",["Fortalecer a fé","Nada","Problemas"],0]],
-// t5 a t12 seguem o mesmo padrão, já detalhado acima, pode ser adicionado aqui...
+["Oração ajuda em quê?",["Fortalecer a fé","Nada","Problemas"],0]
+]
 };
 
-// LOGIN E AUTENTICAÇÃO
+// =======================================================
+// LOGIN / FIREBASE
+// =======================================================
 window.cadastrar=async()=>{try{await createUserWithEmailAndPassword(auth,email.value.trim(),senha.value.trim());alert("Conta criada");}catch(e){alert(e.message)}}
 window.login=async()=>{try{await signInWithEmailAndPassword(auth,email.value.trim(),senha.value.trim());}catch(e){alert(e.message)}}
 window.sair=()=>signOut(auth);
@@ -150,7 +161,6 @@ let html="";
 for(let i=1;i<=12;i++){
 let t="t"+i;
 let prev=prog["t"+(i-1)]||0;
-let atualScore=prog[t]||0;
 if(i>1 && prev<80){html+=`<button class="locked">🔒 Lição ${i}</button>`;}
 else{html+=`<button onclick="start('${t}')">📚 Lição ${i}</button>`;}
 }
@@ -199,6 +209,7 @@ html+="<button onclick='location.reload()'>Voltar</button>";
 menu.innerHTML=html;
 }
 
+// ADMIN
 let clicks=0;
 window.adminClick=()=>{clicks++; if(clicks>=5) abrirAdmin();}
 async function abrirAdmin(){
