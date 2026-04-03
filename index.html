@@ -3,46 +3,54 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rumo ao Paraíso em Família</title>
+<title>Quiz Bíblico MASTER</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; font-size:18px; }
+button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; }
 .correct { background:green; }
 .wrong { background:red; }
+.locked { background:#444; color:#888; }
 .progress { width:90%; max-width:400px; height:10px; background:#333; margin:auto; }
 .progress-bar { height:10px; background:lime; width:0%; }
 input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
+canvas { max-width:90%; margin:auto; }
 </style>
 </head>
 
 <body>
 
-<h1>📖 Rumo ao Paraíso em Família</h1>
+<h1 onclick="adminClick()">📖 Quiz Bíblico MASTER</h1>
 
-<!-- LOGIN -->
 <div id="loginBox">
-<h2>🔐 Login</h2>
 <input id="email" placeholder="Email"><br>
-<input id="senha" type="password" placeholder="Senha (mín 6 caracteres)"><br>
+<input id="senha" type="password" placeholder="Senha"><br>
 <button onclick="login()">Entrar</button>
 <button onclick="cadastrar()">Criar conta</button>
+<button onclick="recuperarSenha()">🔑 Esqueci a senha</button>
 </div>
 
-<!-- MENU -->
 <div id="menu" style="display:none;">
 <p id="userText"></p>
-<button onclick="sair()">🚪 Sair</button>
+<button onclick="sair()">Sair</button>
 <div id="botoes"></div>
-<button onclick="ranking()">🏆 Ranking</button>
+<button onclick="ranking()">🏆 Ranking Geral</button>
 </div>
 
-<!-- QUIZ -->
 <div id="quiz" style="display:none;">
 <div class="progress"><div id="bar" class="progress-bar"></div></div>
 <h2 id="q"></h2>
 <div id="opts"></div>
 <p id="f"></p>
+</div>
+
+<div id="adminPanel" style="display:none;">
+<h2>📊 ADMIN MASTER</h2>
+<div id="dados"></div>
+<canvas id="grafico"></canvas>
+<button onclick="location.reload()">Voltar</button>
 </div>
 
 <audio id="somAcerto" src="Aplauso.mp3"></audio>
@@ -51,48 +59,33 @@ input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
-  authDomain: "quiz-biblico-e1362.firebaseapp.com",
-  projectId: "quiz-biblico-e1362"
+apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
+authDomain: "quiz-biblico-e1362.firebaseapp.com",
+projectId: "quiz-biblico-e1362"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// 🔥 CADASTRO (COM ERRO)
-window.cadastrar = async ()=>{
-try{
-  await createUserWithEmailAndPassword(auth,email.value,senha.value);
-  alert("✅ Conta criada com sucesso!");
-}catch(e){
-  alert("❌ Erro: " + e.message);
-}
-}
+// LOGIN
+window.cadastrar=async()=>{try{await createUserWithEmailAndPassword(auth,email.value.trim(),senha.value.trim());alert("Conta criada");}catch(e){alert(e.message)}}
+window.login=async()=>{try{await signInWithEmailAndPassword(auth,email.value.trim(),senha.value.trim());}catch(e){alert(e.message)}}
+window.sair=()=>signOut(auth);
+window.recuperarSenha=async()=>{await sendPasswordResetEmail(auth,email.value.trim());alert("Email enviado!")}
 
-// 🔥 LOGIN (COM ERRO)
-window.login = async ()=>{
-try{
-  await signInWithEmailAndPassword(auth,email.value,senha.value);
-}catch(e){
-  alert("❌ Erro: " + e.message);
-}
-}
-
-window.sair = ()=> signOut(auth);
-
-// USUÁRIO
+// USER
 let jogador="";
-onAuthStateChanged(auth, user=>{
+onAuthStateChanged(auth,user=>{
 if(user){
 jogador=user.email;
 loginBox.style.display="none";
 menu.style.display="block";
-userText.innerText="👤 "+jogador;
+userText.innerText=jogador;
 gerarBotoes();
 }else{
 loginBox.style.display="block";
@@ -100,49 +93,61 @@ menu.style.display="none";
 }
 });
 
-// FRASES
-let acertoMsg=["🔥 BOA!","👏 Mandou bem!","😎 Brabo!","🚀 Acertou!"];
-let erroMsg=["💀 Errou!","😂 Vacilou!","🙈 Quase!","😈 Foi mal!"];
-
 // SOM
-function tocar(tipo){
-let a=document.getElementById(tipo==="acerto"?"somAcerto":"somErro");
-a.currentTime=0;
-a.play().catch(()=>{});
-}
+function tocar(t){let a=document.getElementById(t==="acerto"?"somAcerto":"somErro");a.currentTime=0;a.play().catch(()=>{})}
 
-// PERGUNTAS (RESUMIDO EXEMPLO — mantém o seu bloco completo se já colou)
-let temas={
-t1:[["João 17:3 fala sobre?",["Vida eterna","Dinheiro","Fama"],0],["Quem criou tudo?",["Deus","Homem","Natureza"],0],["Nome de Deus?",["Jeová","Jesus","Maria"],0],["Bíblia traz?",["Esperança","Confusão","Medo"],0],["Conhecer Deus traz?",["Vida","Nada","Problema"],0],["No vídeo?",["Conhecer Deus","Dinheiro","Fama"],0],["Deus quer?",["Aproximação","Ignorar","Nada"],0],["Aprender sobre?",["Deus","Nada","Ignorar"],0],["Resultado?",["Vida eterna","Nada","Problema"],0],["Importante?",["Sim","Não","Talvez"],0]]
-};
+// PERGUNTAS (exemplo)
+let temas={t1:[["Quem criou tudo?",["Deus","Homem","Natureza"],0]]};
 
 let atual=0,acertos=0,lista=[],temaAtual="";
 
-// BOTÕES
-function gerarBotoes(){
-let html="";
-for(let i=1;i<=12;i++){
-html+=`<button onclick="start('t${i}')">📚 Lição ${i}</button>`;
+// PROGRESSO
+async function getProgresso(){
+let ref=doc(db,"progresso",jogador);
+let snap=await getDoc(ref);
+return snap.exists()?snap.data():{};
 }
+
+async function salvarProgresso(tema,pct){
+let ref=doc(db,"progresso",jogador);
+let dados=await getProgresso();
+dados[tema]=pct;
+await setDoc(ref,dados);
+}
+
+// BOTÕES
+async function gerarBotoes(){
+let prog=await getProgresso();
+let html="";
+
+for(let i=1;i<=12;i++){
+let t="t"+i;
+let prev=prog["t"+(i-1)]||0;
+let atualScore=prog[t]||0;
+
+if(i>1 && prev<80){
+html+=`<button class="locked">🔒 Lição ${i}</button>`;
+}else{
+html+=`<button onclick="start('${t}')">📚 Lição ${i}</button>`;
+}
+}
+
 botoes.innerHTML=html;
 }
 
-// START
+// QUIZ
 window.start=t=>{
 temaAtual=t;
-lista=temas[t];
+lista=temas[t]||temas.t1;
 atual=0; acertos=0;
 menu.style.display="none";
 quiz.style.display="block";
 load();
 }
 
-// LOAD
 function load(){
 let q=lista[atual];
 qEl.innerText=q[0];
-bar.style.width=((atual/lista.length)*100)+"%";
-
 let html="";
 q[1].forEach((op,i)=>{
 html+=`<button onclick="resp(${i},this)">${op}</button>`;
@@ -150,56 +155,115 @@ html+=`<button onclick="resp(${i},this)">${op}</button>`;
 opts.innerHTML=html;
 }
 
-// RESP
 window.resp=(i,btn)=>{
 let certo=lista[atual][2];
-if(i===certo){
-acertos++;
-btn.classList.add("correct");
-f.innerText=acertoMsg[Math.random()*4|0];
-tocar("acerto");
-}else{
-btn.classList.add("wrong");
-f.innerText=erroMsg[Math.random()*4|0];
-tocar("erro");
-}
+if(i===certo){acertos++;tocar("acerto");}
+else{tocar("erro");}
+
 setTimeout(()=>{
-f.innerText="";
 atual++;
-if(atual<lista.length) load(); else fim();
-},1000);
+if(atual<lista.length) load();
+else fim();
+},800);
 }
 
 // FIM
 async function fim(){
 let pct=Math.round((acertos/lista.length)*100);
+await salvarProgresso(temaAtual,pct);
 
 await addDoc(collection(db,"ranking"),{
-nome:jogador,
-tema:temaAtual,
-pontos:pct,
-data:new Date().toLocaleString()
+nome:jogador,tema:temaAtual,pontos:pct,data:new Date().toLocaleString()
 });
 
 quiz.innerHTML=`<h2>${pct}%</h2><button onclick="location.reload()">Menu</button>`;
 }
 
-// RANKING
-window.ranking=async ()=>{
-let snap=await getDocs(collection(db,"ranking"));
-let dados=[];
-snap.forEach(doc=>dados.push(doc.data()));
-dados.sort((a,b)=>b.pontos-a.pontos);
+// RANKING MELHORADO
+window.ranking=async()=>{
+let snap=await getDocs(collection(db,"progresso"));
+let lista=[];
 
-let html="<h2>🏆 Ranking</h2>";
-dados.slice(0,10).forEach(d=>{
-html+=`<p>${d.nome} - ${d.tema} - ${d.pontos}%</p>`;
+snap.forEach(doc=>{
+let d=doc.data();
+let soma=0,cont=0;
+
+for(let i=1;i<=12;i++){
+if(d["t"+i]){soma+=d["t"+i];cont++;}
+}
+
+let media = cont ? Math.round(soma/cont) : 0;
+
+lista.push({nome:doc.id,media});
 });
+
+lista.sort((a,b)=>b.media-a.media);
+
+let html="<h2>🏆 Ranking Geral</h2>";
+lista.forEach(r=>{
+html+=`<p>${r.nome} - ${r.media}%</p>`;
+});
+
 html+="<button onclick='location.reload()'>Voltar</button>";
 menu.innerHTML=html;
 }
 
-</script>
+// ADMIN
+let clicks=0;
+window.adminClick=()=>{clicks++; if(clicks>=5) abrirAdmin();}
 
+async function abrirAdmin(){
+menu.style.display="none";
+adminPanel.style.display="block";
+
+let snap=await getDocs(collection(db,"progresso"));
+
+let html="";
+snap.forEach(doc=>{
+let user=doc.id;
+html+=`<button onclick="verUsuario('${user}')">${user}</button>`;
+});
+
+dados.innerHTML=html;
+}
+
+// VER USUÁRIO + GRÁFICO
+window.verUsuario=async(user)=>{
+let ref=doc(db,"progresso",user);
+let snap=await getDoc(ref);
+let d=snap.data();
+
+let labels=[],valores=[];
+
+for(let i=1;i<=12;i++){
+labels.push("L"+i);
+valores.push(d["t"+i]||0);
+}
+
+new Chart(document.getElementById("grafico"),{
+type:'bar',
+data:{
+labels:labels,
+datasets:[{label:user,data:valores}]
+}
+});
+
+dados.innerHTML+=`<br><button onclick="liberar('${user}')">🔓 Liberar tudo</button>`;
+}
+
+// LIBERAR MANUAL
+window.liberar=async(user)=>{
+let ref=doc(db,"progresso",user);
+let dados={};
+
+for(let i=1;i<=12;i++){
+dados["t"+i]=100;
+}
+
+await setDoc(ref,dados);
+alert("Liberado!");
+}
+
+</script>
 </body>
 </html>
