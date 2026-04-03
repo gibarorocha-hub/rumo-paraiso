@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rumo ao Paraíso em Família - Quiz</title>
+<title>Quiz Bíblico MASTER</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; margin:0; padding:20px;}
 button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; font-size:16px; cursor:pointer; }
@@ -13,16 +14,27 @@ button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; bor
 .progress { width:90%; max-width:400px; height:10px; background:#333; margin:auto; border-radius:5px; }
 .progress-bar { height:10px; background:lime; width:0%; border-radius:5px; }
 input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
+canvas { max-width:90%; margin:auto; }
+.hidden { display:none; }
 </style>
 </head>
 <body>
 
-<h1 onclick="admin()">📖 Rumo ao Paraíso em Família</h1>
+<h1 onclick="adminClick()">📖 Quiz Bíblico MASTER</h1>
 
-<div id="menu">
-<input id="nome" placeholder="Seu nome"><br>
+<div id="loginBox">
+<input id="email" placeholder="Email"><br>
+<input id="senha" type="password" placeholder="Senha"><br>
+<button onclick="cadastrar()">Criar conta</button>
+<button onclick="login()">Entrar</button>
+<button onclick="recuperarSenha()">🔑 Esqueci a senha</button>
+</div>
+
+<div id="menu" class="hidden">
+<p id="userText"></p>
+<button onclick="sair()">Sair</button>
 <div id="botoes"></div>
-<button onclick="ranking()">🏆 Ranking</button>
+<button onclick="ranking()">🏆 Ranking Geral</button>
 </div>
 
 <div id="quiz" class="hidden">
@@ -32,98 +44,144 @@ input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
 <button onclick="voltarMenu()">⬅️ Voltar ao Menu</button>
 </div>
 
+<div id="adminPanel" class="hidden">
+<h2>📊 ADMIN MASTER</h2>
+<div id="dados"></div>
+<canvas id="grafico"></canvas>
+<button onclick="location.reload()">Voltar</button>
+</div>
+
 <audio id="somAcerto" src="Aplauso.mp3"></audio>
 <audio id="somErro" src="Vaia.mp3"></audio>
 
-<script>
-// ========== SONS ==========
-function tocar(tipo){
-  let a = document.getElementById(tipo==="acerto"?"somAcerto":"somErro");
-  a.currentTime=0; a.play().catch(()=>{});
-}
+<script type="module">
+// ====== FIREBASE ======
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, doc, getDoc, setDoc, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// ========== PERGUNTAS ==========
-let temas = {
-  t1:[
-    ["Segundo João 17:3, o que leva à vida eterna?", ["Conhecer a Deus","Ter dinheiro","Fama"],0],
-    ["O que diz Salmos 83:18?", ["Deus se chama Jeová","Deus não tem nome","Existem vários deuses"],0],
-    ["Segundo a lição 1, por que conhecer a Deus é importante?", ["Traz vida eterna","Não muda nada","Só curiosidade"],0],
-    ["A Bíblia traz o quê para nossa vida?", ["Esperança","Medo","Confusão"],0],
-    ["Quem criou tudo segundo a Bíblia?", ["Jeová","Homem","Natureza"],0],
-    ["O que ensina a oração?", ["Fé e confiança","Nada","Medo"],0],
-    ["Devemos amar a Deus?", ["Sim","Não","Talvez"],0],
-    ["Quem é nosso Pai celestial?", ["Jeová","Jesus","Homem"],0],
-    ["Importância de estudar a Bíblia?", ["Aprender a verdade","Só curiosidade","Não é importante"],0],
-    ["Segundo lição 1 vídeo, qual o objetivo?", ["Seguir Deus","Ser rico","Fama"],0]
-  ],
-  t2:[
-    ["Segundo a lição 2, a Bíblia é o quê?", ["Palavra de Deus","Livro comum","História antiga"],0],
-    ["A Bíblia ajuda a fazer o quê?", ["Viver melhor","Errar","Confundir"],0],
-    ["Segundo Provérbios 3:5, devemos confiar em quem?", ["Jeová","Nós mesmos","Qualquer pessoa"],0],
-    ["Por que devemos ler a Bíblia?", ["Para aprender a verdade","Para passar tempo","Não precisa"],0],
-    ["A Bíblia ensina o quê?", ["O caminho certo","Nada útil","Confusão"],0],
-    ["Segundo vídeo lição 2, o que fazer?", ["Seguir a Deus","Ignorar","Nada"],0],
-    ["Amizade com Deus traz?", ["Alegria","Problemas","Nada"],0],
-    ["Seguir mandamentos resulta em?", ["Felicidade","Tristeza","Nada"],0],
-    ["Quem é fiel a Deus?", ["Jeová","Ninguém","Todos"],0],
-    ["Proteção contra o mal vem de?", ["Bíblia","Nada","Confusão"],0]
-  ],
-  t3:[
-    ["Segundo a lição 3, Deus quer que sejamos como?", ["Felizes","Tristes","Confusos"],0],
-    ["O que a amizade com Deus traz?", ["Alegria","Problemas","Nada"],0],
-    ["Segundo a Bíblia, devemos fazer o quê?", ["O bem","O mal","Nada"],0],
-    ["Deus se importa conosco?", ["Sim","Não","Nunca"],0],
-    ["A vida é o quê segundo o livro?", ["Presente de Deus","Acaso","Sem valor"],0],
-    ["Segundo vídeo lição 3, o que devemos seguir?", ["Deus","Ninguém","Nada"],0],
-    ["Quem é amigo verdadeiro?", ["Jeová","Ninguém","Todos"],0],
-    ["Fé significa?", ["Confiar em Deus","Confiar no homem","Nada"],0],
-    ["Ajudar os outros?", ["Sim","Não","Nunca"],0],
-    ["Oração traz?", ["Força","Nada","Problemas"],0]
-  ]
+const firebaseConfig = {
+apiKey: "SEU_API_KEY",
+authDomain: "SEU_AUTH_DOMAIN",
+projectId: "SEU_PROJECT_ID"
 };
 
-// Criar lições t4 até t12 replicando t1 para teste
-for(let i=4;i<=12;i++){temas["t"+i]=temas.t1.slice();}
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
 
-// ========== VARIÁVEIS ==========
-let atual=0, acertos=0, lista=[], temaAtual="", jogador="";
+// ====== LOGIN / CADASTRO ======
+window.cadastrar = async ()=>{
+  try{
+    await createUserWithEmailAndPassword(auth,email.value.trim(),senha.value.trim());
+    alert("Conta criada com sucesso!");
+  }catch(e){alert(e.message);}
+}
+
+window.login = async ()=>{
+  try{ await signInWithEmailAndPassword(auth,email.value.trim(),senha.value.trim()); }
+  catch(e){alert(e.message);}
+}
+
+window.sair = ()=>signOut(auth);
+
+window.recuperarSenha = async ()=>{
+  try{ await sendPasswordResetEmail(auth,email.value.trim()); alert("Email de recuperação enviado!"); }
+  catch(e){ alert("Erro ao enviar email."); }
+}
+
+// ====== VERIFICAR LOGIN ======
+let jogador="";
+let loginBox = document.getElementById("loginBox");
+let menu = document.getElementById("menu");
 let botoes = document.getElementById("botoes");
 let quiz = document.getElementById("quiz");
-let menu = document.getElementById("menu");
 let qEl = document.getElementById("q");
 let opts = document.getElementById("opts");
 let bar = document.getElementById("bar");
+let adminPanel = document.getElementById("adminPanel");
+let dados = document.getElementById("dados");
 
-// ========== INICIAR Lição ==========
-function start(t){
-  jogador = document.getElementById("nome").value || "Anônimo";
-  temaAtual = t;
-  lista = temas[t];
+onAuthStateChanged(auth,user=>{
+  if(user){
+    jogador=user.email;
+    loginBox.classList.add("hidden");
+    menu.classList.remove("hidden");
+    document.getElementById("userText").innerText=jogador;
+    gerarBotoes();
+  }else{
+    loginBox.classList.remove("hidden");
+    menu.classList.add("hidden");
+  }
+});
+
+// ====== SONS ======
+function tocar(t){let a=document.getElementById(t==="acerto"?"somAcerto":"somErro"); a.currentTime=0; a.play().catch(()=>{});}
+
+// ====== PERGUNTAS ======
+let temas={
+t1:[
+["Segundo João 17:3, o que leva à vida eterna?",["Conhecer a Deus","Ter dinheiro","Fama"],0],
+["O que diz Salmos 83:18?",["Deus se chama Jeová","Deus não tem nome","Existem vários deuses"],0],
+["Segundo a lição 1, por que conhecer a Deus é importante?",["Traz vida eterna","Não muda nada","Só curiosidade"],0],
+["A Bíblia traz o quê para nossa vida?",["Esperança","Medo","Confusão"],0],
+["Quem criou tudo segundo a Bíblia?",["Jeová","Homem","Natureza"],0],
+["O que ensina a oração?", ["Fé e confiança","Nada","Medo"],0],
+["Devemos amar a Deus?", ["Sim","Não","Talvez"],0],
+["Quem é nosso Pai celestial?", ["Jeová","Jesus","Homem"],0],
+["Importância de estudar a Bíblia?", ["Aprender a verdade","Só curiosidade","Não é importante"],0],
+["Segundo lição 1 vídeo, qual o objetivo?", ["Seguir Deus","Ser rico","Fama"],0]
+]
+};
+// t2 até t12 replicadas para teste
+for(let i=2;i<=12;i++){temas["t"+i]=temas.t1.slice();}
+
+// ====== VARIÁVEIS QUIZ ======
+let atual=0, acertos=0, lista=[], temaAtual="";
+
+// ====== PROGRESSO ======
+async function getProgresso(){
+  let ref=doc(db,"progresso",jogador);
+  let snap=await getDoc(ref);
+  return snap.exists()?snap.data():{};
+}
+
+async function salvarProgresso(tema,pct){
+  let ref=doc(db,"progresso",jogador);
+  let dados=await getProgresso();
+  dados[tema]=pct;
+  await setDoc(ref,dados);
+}
+
+// ====== INICIAR LIÇÃO ======
+window.start=t=>{
+  temaAtual=t;
+  lista=temas[t];
   atual=0; acertos=0;
-  menu.style.display="none";
+  menu.classList.add("hidden");
   quiz.classList.remove("hidden");
   load();
 }
 
-// ========== CARREGAR PERGUNTA ==========
+// ====== CARREGAR PERGUNTA ======
 function load(){
-  let q = lista[atual];
-  qEl.innerText = q[0];
-  opts.innerHTML = "";
+  let q=lista[atual];
+  qEl.innerText=q[0];
+  opts.innerHTML="";
   q[1].forEach((op,i)=>{
-    let btn = document.createElement("button");
-    btn.innerText = op;
-    btn.onclick = ()=>resp(i,btn);
+    let btn=document.createElement("button");
+    btn.innerText=op;
+    btn.onclick=()=>resp(i,btn);
     opts.appendChild(btn);
   });
-  bar.style.width = ((atual/lista.length)*100)+"%";
+  bar.style.width=((atual/lista.length)*100)+"%";
 }
 
-// ========== RESPONDER ==========
+// ====== RESPONDER ======
 function resp(i,btn){
   let certo = lista[atual][2];
   if(i===certo){acertos++; btn.classList.add("correct"); tocar("acerto");}
-  else {btn.classList.add("wrong"); tocar("erro");}
+  else{btn.classList.add("wrong"); tocar("erro");}
   setTimeout(()=>{
     atual++;
     if(atual<lista.length) load();
@@ -131,39 +189,75 @@ function resp(i,btn){
   },800);
 }
 
-// ========== FINAL ==========
-function fim(){
+// ====== FINAL ======
+async function fim(){
   let pct = Math.round((acertos/lista.length)*100);
-  quiz.innerHTML = `<h2>${pct}%</h2><button onclick="voltarMenu()">Menu</button>`;
+  await salvarProgresso(temaAtual,pct);
+  await addDoc(collection(db,"ranking"),{nome:jogador,tema:temaAtual,pontos:pct,data:new Date().toLocaleString()});
+  quiz.innerHTML=`<h2>${pct}%</h2><button onclick="voltarMenu()">Menu</button>`;
 }
 
-// ========== VOLTAR MENU ==========
+// ====== VOLTAR MENU ======
 function voltarMenu(){
   quiz.classList.add("hidden");
-  menu.style.display="block";
+  menu.classList.remove("hidden");
+  gerarBotoes();
 }
 
-// ========== GERAR BOTÕES ==========
-function gerarBotoes(){
+// ====== GERAR BOTÕES LIÇÕES ======
+async function gerarBotoes(){
+  let prog = await getProgresso();
   botoes.innerHTML="";
   for(let i=1;i<=12;i++){
-    let t = "t"+i;
-    let btn = document.createElement("button");
-    btn.innerText = `📚 Lição ${i}`;
-    btn.onclick = ()=>start(t);
+    let t="t"+i;
+    let prev = prog["t"+(i-1)]||0;
+    let btn=document.createElement("button");
+    btn.innerText=`📚 Lição ${i}`;
+    if(i>1 && prev<80){ btn.classList.add("locked"); btn.disabled=true;}
+    else btn.onclick=()=>start(t);
     botoes.appendChild(btn);
   }
 }
-gerarBotoes();
 
-// ========== RANKING ==========
-function ranking(){
-  alert("Ranking temporário: não implementado ainda.");
+// ====== RANKING ======
+window.ranking=async()=>{
+  let snap=await getDocs(collection(db,"progresso"));
+  let lista=[];
+  snap.forEach(d=>{
+    let data=d.data(), soma=0,cont=0;
+    for(let i=1;i<=12;i++){if(data["t"+i]){soma+=data["t"+i]; cont++;}}
+    let media = cont?soma/cont:0;
+    lista.push({nome:d.id,media});
+  });
+  lista.sort((a,b)=>b.media-a.media);
+  let html="<h2>🏆 Ranking Geral</h2>";
+  lista.forEach(r=>{html+=`<p>${r.nome} - ${Math.round(r.media)}%</p>`;});
+  html+="<button onclick='location.reload()'>Voltar</button>";
+  menu.innerHTML=html;
 }
 
-// ========== ADMIN ==========
-function admin(){
-  alert("Painel de controle não implementado ainda.");
+// ====== ADMIN ======
+let clicks=0;
+window.adminClick=()=>{clicks++; if(clicks>=5) abrirAdmin();}
+async function abrirAdmin(){
+  menu.classList.add("hidden");
+  adminPanel.classList.remove("hidden");
+  let snap=await getDocs(collection(db,"progresso"));
+  dados.innerHTML="";
+  snap.forEach(d=>{
+    let btn=document.createElement("button");
+    btn.innerText=d.id;
+    btn.onclick=()=>verUsuario(d.id);
+    dados.appendChild(btn);
+  });
+}
+window.verUsuario=async(user)=>{
+  let ref=doc(db,"progresso",user);
+  let snap=await getDoc(ref);
+  let d=snap.data();
+  let labels=[],valores=[];
+  for(let i=1;i<=12;i++){labels.push("L"+i); valores.push(d["t"+i]||0);}
+  new Chart(document.getElementById("grafico"),{type:'bar',data:{labels:labels,datasets:[{label:user,data:valores}]}}); 
 }
 </script>
 </body>
