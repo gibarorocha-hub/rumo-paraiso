@@ -4,26 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quiz Bíblico PRO</title>
-
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; font-size:16px; }
+button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; }
 .correct { background:green; }
 .wrong { background:red; }
 .locked { background:#444; color:#888; }
 .progress { width:90%; max-width:400px; height:10px; background:#333; margin:auto; }
 .progress-bar { height:10px; background:lime; width:0%; }
-input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; font-size:16px; }
+input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
 </style>
 </head>
-
 <body>
 
 <h1 onclick="adminClick()">📖 Quiz Bíblico PRO</h1>
 
 <div id="loginBox">
 <input id="nome" placeholder="Digite seu nome"><br>
-<button onclick="login()">Entrar</button>
+<button onclick="login()">Iniciar</button>
 </div>
 
 <div id="menu" style="display:none;">
@@ -38,6 +36,7 @@ input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; fon
 <h2 id="q"></h2>
 <div id="opts"></div>
 <p id="f"></p>
+<button onclick="voltarMenu()" id="btnVoltar" style="display:none;">Voltar ao Menu</button>
 </div>
 
 <div id="adminPanel" style="display:none;">
@@ -50,25 +49,54 @@ input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; fon
 <audio id="somErro" src="Vaia.mp3"></audio>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
-  authDomain: "quiz-biblico-e1362.firebaseapp.com",
-  projectId: "quiz-biblico-e1362"
+apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
+authDomain: "quiz-biblico-e1362.firebaseapp.com",
+projectId: "quiz-biblico-e1362"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// FRASES ENGRAÇADAS
-let ok = ["🔥 Boa!", "👏 Top!", "😎 Mandou bem!", "🎉 Você acertou!", "💪 Acertou mesmo!"];
-let no = ["💀 Errou!", "😂 Quase!", "🙈 Vacilou!", "😅 Não foi dessa vez!", "🤦‍♂️ Tenta de novo!"];
+// VARIÁVEIS
+let jogador="";
+let atual=0, acertos=0, lista=[], temaAtual="";
+let ok=["🔥 Boa!","👏 Top!","😎 Mandou bem!","😂 Acertei mesmo?","💪 Show!"];
+let no=["💀 Errou!","🙈 Quase lá!","😂 Ops!","😅 Errou feio!","😬 Tente de novo!"];
 
-// PERGUNTAS
-let temas = {
+// LOGIN
+window.login=()=>{
+jogador=nome.value.trim();
+if(!jogador){alert("Digite seu nome!"); return;}
+loginBox.style.display="none";
+menu.style.display="block";
+userText.innerText=jogador;
+gerarBotoes();
+}
+
+// SAIR
+window.sair=()=>{
+location.reload();
+}
+
+// VOLTAR AO MENU
+window.voltarMenu=()=>{
+quiz.style.display="none";
+menu.style.display="block";
+}
+
+// TOCAR SOM
+function tocar(t){
+let a=document.getElementById(t==="acerto"?"somAcerto":"somErro");
+a.currentTime=0;
+a.play().catch(()=>{});
+}
+
+// TEMAS E PERGUNTAS
+let temas={
 t1:[
 ["Segundo João 17:3, o que leva à vida eterna?",["Conhecer a Deus","Dinheiro","Fama"],0],
 ["Salmos 83:18 ensina?",["Jeová é o nome de Deus","Deus não tem nome","Vários deuses"],0],
@@ -105,6 +133,8 @@ t3:[
 ["Seguir Deus traz?",["Alegria","Problema","Nada"],0],
 ["Amizade com Deus exige?",["Aproximação","Distância","Nada"],0]
 ],
+// Continue com t4 até t12 seguindo o mesmo modelo...
+};
 t4:[
 ["Orar é?",["Falar com Deus","Pensar","Nada"],0],
 ["Deus ouve oração?",["Sim","Não","Às vezes"],0],
@@ -215,174 +245,152 @@ t12:[
 ]
 };
 
-// VARIÁVEIS
-let jogador="", atual=0, acertos=0, lista=[], temaAtual="";
-
-// LOGIN SIMPLES
-window.login = ()=>{
-  jogador = nome.value.trim();
-  if(!jogador){ alert("Digite seu nome"); return; }
-  loginBox.style.display="none";
-  menu.style.display="block";
-  userText.innerText = jogador;
-  gerarBotoes();
+// PROGRESSO
+async function getProgresso(){
+let ref=doc(db,"progresso",jogador);
+let snap=await getDoc(ref);
+return snap.exists()?snap.data():{};
 }
 
-// SAIR
-window.sair = ()=>{
-  location.reload();
+async function salvarProgresso(tema,pct){
+let ref=doc(db,"progresso",jogador);
+let dados=await getProgresso();
+dados[tema]=pct;
+await setDoc(ref,dados);
 }
 
-// BOTÕES DAS LIÇÕES
+// BOTÕES
 async function gerarBotoes(){
-  let prog = {};
-  try{
-    let snap = await getDocs(collection(db,"progresso"));
-    snap.forEach(doc=>{
-      if(doc.id===jogador) prog=doc.data();
-    });
-  }catch(e){}
-
-  let html="";
-  for(let i=1;i<=12;i++){
-    let t="t"+i;
-    let prev=prog["t"+(i-1)]||0;
-    let atualScore=prog[t]||0;
-    if(i>1 && prev<80){
-      html+=`<button class="locked">🔒 Lição ${i}</button>`;
-    }else if(atualScore>=80){
-      html+=`<button class="locked">✅ Lição ${i}</button>`;
-    }else{
-      html+=`<button onclick="start('${t}')">📚 Lição ${i}</button>`;
-    }
-  }
-  botoes.innerHTML = html;
+let prog=await getProgresso();
+let html="";
+for(let i=1;i<=12;i++){
+let t="t"+i;
+let prev=prog["t"+(i-1)]||0;
+let atualScore=prog[t]||0;
+if(i>1 && prev<80){
+html+=`<button class="locked">🔒 Lição ${i}</button>`;
+}else if(atualScore>=80){
+html+=`<button class="locked">✅ Lição ${i}</button>`;
+}else{
+html+=`<button onclick="start('${t}')">📚 Lição ${i}</button>`;
+}
+}
+botoes.innerHTML=html;
 }
 
 // START
-window.start = t=>{
-  temaAtual=t;
-  lista=temas[t]||[];
-  if(lista.length===0){ alert("Sem perguntas nessa lição"); return; }
-  atual=0; acertos=0;
-  menu.style.display="none";
-  quiz.style.display="block";
-  load();
+window.start=t=>{
+temaAtual=t;
+lista=temas[t]||temas.t1;
+atual=0;
+acertos=0;
+menu.style.display="none";
+quiz.style.display="block";
+btnVoltar.style.display="none";
+load();
 }
 
 // LOAD
 function load(){
-  let q=lista[atual];
-  qEl.innerText=q[0];
-  bar.style.width = ((atual/lista.length)*100)+"%";
-  let html="";
-  q[1].forEach((op,i)=>{
-    html+=`<button onclick="resp(${i},this)">${op}</button>`;
-  });
-  opts.innerHTML = html;
+let q=lista[atual];
+qEl.innerText=q[0];
+bar.style.width=((atual/lista.length)*100)+"%";
+let html="";
+q[1].forEach((op,i)=>{
+html+=`<button onclick="resp(${i},this)">${op}</button>`;
+});
+opts.innerHTML=html;
 }
 
-// RESP
-window.resp = (i,btn)=>{
-  let certo=lista[atual][2];
-  if(i===certo){
-    acertos++;
-    btn.classList.add("correct");
-    f.innerText=ok[Math.floor(Math.random()*ok.length)];
-    tocar("acerto");
-  }else{
-    btn.classList.add("wrong");
-    f.innerText=no[Math.floor(Math.random()*no.length)];
-    tocar("erro");
-  }
-  setTimeout(()=>{
-    f.innerText="";
-    atual++;
-    if(atual<lista.length) load();
-    else fim();
-  },1000);
+// RESPONDER
+window.resp=(i,btn)=>{
+let certo=lista[atual][2];
+if(i===certo){
+acertos++;
+btn.classList.add("correct");
+f.innerText=ok[Math.floor(Math.random()*ok.length)];
+tocar("acerto");
+}else{
+btn.classList.add("wrong");
+f.innerText=no[Math.floor(Math.random()*no.length)];
+tocar("erro");
+}
+setTimeout(()=>{
+f.innerText="";
+atual++;
+if(atual<lista.length) load();
+else fim();
+},1000);
 }
 
 // FIM
 async function fim(){
-  let pct=Math.round((acertos/lista.length)*100);
-  try{
-    await setDoc(doc(db,"progresso",jogador),{[temaAtual]:pct},{merge:true});
-    await addDoc(collection(db,"ranking"),{nome:jogador,tema:temaAtual,pontos:pct,data:new Date().toLocaleString()});
-  }catch(e){}
-  quiz.innerHTML=`<h2>${pct}%</h2><button onclick="location.reload()">Menu</button>`;
+let pct=Math.round((acertos/lista.length)*100);
+await salvarProgresso(temaAtual,pct);
+await addDoc(collection(db,"ranking"),{
+nome:jogador,
+tema:temaAtual,
+pontos:pct,
+data:new Date().toLocaleString()
+});
+quiz.innerHTML=`<h2>${pct}%</h2><button onclick="location.reload()">Menu</button>`;
+btnVoltar.style.display="block";
 }
 
 // RANKING
 window.ranking=async()=>{
-  let snap=await getDocs(collection(db,"ranking"));
-  let html="<h2>🏆 Ranking</h2>";
-  snap.forEach(doc=>{
-    let d=doc.data();
-    html+=`<p>${d.nome} - ${d.tema} - ${d.pontos}%</p>`;
-  });
-  html+="<button onclick='location.reload()'>Voltar</button>";
-  menu.innerHTML=html;
+let snap=await getDocs(collection(db,"ranking"));
+let html="<h2>🏆 Ranking</h2>";
+snap.forEach(doc=>{
+let d=doc.data();
+html+=`<p>${d.nome} - ${d.tema} - ${d.pontos}%</p>`;
+});
+html+="<button onclick='location.reload()'>Voltar</button>";
+menu.innerHTML=html;
 }
 
-// ADMIN (somente para Gilberto Rocha)
+// ADMIN
 let clicks=0;
-window.adminClick=()=>{ clicks++; if(clicks>=5) abrirAdmin(); }
+window.adminClick=()=>{clicks++; if(clicks>=5) abrirAdmin();}
 
 async function abrirAdmin(){
-  if(jogador!=="Gilberto Rocha"){ alert("Somente Admin!"); return; }
-  menu.style.display="none";
-  adminPanel.style.display="block";
-  let snap=await getDocs(collection(db,"progresso"));
-  let html=`<h3>🔍 Buscar usuário</h3>
-  <input id="busca" oninput="filtrar()" placeholder="Digite nome">
-  <div id="lista"></div>`;
-  dados.innerHTML=html;
-  let listaHTML="";
-  snap.forEach(doc=>{
-    let user=doc.id;
-    let d=doc.data();
-    let prog="";
-    for(let i=1;i<=12;i++){
-      prog+=`L${i}:${d["t"+i]||0}% | `;
-    }
-    listaHTML+=`<div style="border:1px solid #555;margin:10px;padding:10px;">
-    <b>${user}</b><br>${prog}
-    <br><button onclick="resetar('${user}')">🗑 Resetar</button>
-    </div>`;
-  });
-  document.getElementById("lista").innerHTML = listaHTML;
+if(jogador!=="Gilberto Rocha"){alert("Acesso negado!"); return;}
+menu.style.display="none";
+adminPanel.style.display="block";
+let snap=await getDocs(collection(db,"progresso"));
+let html=`<h3>🔍 Buscar usuário</h3>
+<input id="busca" oninput="filtrar()" placeholder="Digite nome do jogador">
+<div id="lista"></div>`;
+dados.innerHTML=html;
+let listaHTML="";
+snap.forEach(doc=>{
+let user=doc.id;
+let d=doc.data();
+let prog="";
+for(let i=1;i<=12;i++){
+prog+=`L${i}:${d["t"+i]||0}% | `;
+}
+listaHTML+=`<div style="border:1px solid #555;margin:10px;padding:10px;">
+<b>${user}</b><br>${prog}<br>
+<button onclick="resetar('${user}')">🗑 Resetar</button></div>`;
+});
+document.getElementById("lista").innerHTML=listaHTML;
 }
 
-// FILTRO
 window.filtrar=()=>{
-  let txt=document.getElementById("busca").value.toLowerCase();
-  document.querySelectorAll("#lista div").forEach(d=>{
-    d.style.display=d.innerText.toLowerCase().includes(txt)?"block":"none";
-  });
+let txt=document.getElementById("busca").value.toLowerCase();
+document.querySelectorAll("#lista div").forEach(d=>{
+d.style.display=d.innerText.toLowerCase().includes(txt)?"block":"none";
+});
 }
 
-// RESET
 window.resetar=async(user)=>{
-  if(!confirm("Resetar usuário?")) return;
-  await deleteDoc(doc(db,"progresso",user));
-  alert("Resetado!");
-  abrirAdmin();
+if(!confirm("Resetar usuário?")) return;
+await deleteDoc(doc(db,"progresso",user));
+alert("Resetado!");
+abrirAdmin();
 }
-
-// SOM
-function tocar(function tocar(tipo){
-  let a=document.getElementById(tipo==="acerto"?"somAcerto":"somErro");
-  a.currentTime=0;
-  a.play().catch(()=>{});
-}
-
-// ELEMENTOS
-const qEl = document.getElementById("q");
-const opts = document.getElementById("opts");
-const bar = document.getElementById("bar");
-const f = document.getElementById("f");
 
 </script>
 </body>
-</html>          
+</html>  
