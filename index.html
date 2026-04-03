@@ -6,50 +6,42 @@
 <title>Rumo ao Paraíso em Família</title>
 
 <style>
-body {
-  font-family: Arial;
-  text-align: center;
-  background:#111;
-  color:#fff;
-  margin:0;
-  padding:20px;
-}
-button {
-  width:90%;
-  max-width:400px;
-  margin:10px;
-  padding:15px;
-  border:none;
-  border-radius:10px;
-  font-size:18px;
-}
-.correct { background: green; }
-.wrong { background: red; }
+body { font-family: Arial; text-align:center; background:#111; color:#fff; }
+button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; font-size:18px; }
+.correct { background:green; }
+.wrong { background:red; }
+.locked { background:#444; color:#888; }
+.progress { width:90%; max-width:400px; height:10px; background:#333; margin:auto; }
+.progress-bar { height:10px; background:lime; width:0%; }
 </style>
 </head>
 
 <body>
 
-<h1>📖 Rumo ao Paraíso em Família (ONLINE)</h1>
+<h1 onclick="admin()">📖 Rumo ao Paraíso em Família</h1>
 
+<div id="menu">
 <input id="nome" placeholder="Seu nome">
-
-<button onclick="start()">▶️ Começar</button>
-<button onclick="ranking()">🏆 Ranking Global</button>
+<div id="botoes"></div>
+<button onclick="finalMode()">🧠 Final 🔒</button>
+<button onclick="ranking()">🏆 Ranking</button>
+</div>
 
 <div id="quiz" style="display:none;">
+<div class="progress"><div id="bar" class="progress-bar"></div></div>
 <h2 id="q"></h2>
 <div id="opts"></div>
 <p id="f"></p>
 </div>
 
+<audio id="somAcerto" src="Aplauso.mp3"></audio>
+<audio id="somErro" src="Vaia.mp3"></audio>
+
 <script type="module">
 
-// 🔥 FIREBASE IMPORT
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// 🔥 CONFIG (SEU)
 const firebaseConfig = {
   apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
   authDomain: "quiz-biblico-e1362.firebaseapp.com",
@@ -62,88 +54,205 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// PERGUNTAS
-let perguntas = [
-["Segundo João 17:3, o que leva à vida eterna?",["Conhecer a Deus","Dinheiro","Fama"],0],
-["O que diz Salmos 83:18?",["Jeová é o nome de Deus","Deus não tem nome","Vários deuses"],0],
-["Quem é o Deus verdadeiro?",["Jeová","Qualquer um","Ninguém"],0]
-];
+// FRASES
+let acertoMsg=["🔥 BOA!","👏 Mandou bem!","😎 Brabo!","🚀 Acertou!"];
+let erroMsg=["💀 Errou feio!","😂 Vacilou!","🙈 Quase!","😈 Foi mal!"];
 
-let atual=0, pontos=0, jogador="";
+// SOM
+function tocar(tipo){
+let a=document.getElementById(tipo==="acerto"?"somAcerto":"somErro");
+a.currentTime=0; a.play().catch(()=>{});
+}
+
+// 12 LIÇÕES (com vídeos + Bíblia)
+let temas={
+t1:[
+["Segundo João 17:3, o que leva à vida eterna?",["Conhecer a Deus","Dinheiro","Fama"],0],
+["No vídeo, o que mais importa na vida?",["Conhecer a Deus","Ser rico","Ter fama"],0],
+["Salmos 83:18 mostra?",["Nome Jeová","Sem nome","Vários deuses"],0],
+["Quem criou tudo?",["Deus","Homem","Natureza"],0]
+],
+t2:[
+["A Bíblia é?",["Palavra de Deus","Livro comum","História"],0],
+["No vídeo, a Bíblia é comparada a quê?",["Manual","Romance","Jornal"],0],
+["Provérbios 3:5 ensina?",["Confiar em Deus","Em si","Em homens"],0],
+["Devemos ler?",["Sim","Não","Só às vezes"],0]
+],
+t3:[
+["Deus quer?",["Felicidade","Tristeza","Nada"],0],
+["No vídeo, amizade com Deus traz?",["Alegria","Problemas","Nada"],0],
+["Devemos fazer?",["Bem","Mal","Nada"],0],
+["Deus se importa?",["Sim","Não","Nunca"],0]
+],
+t4:[
+["Orar é?",["Falar com Deus","Pensar","Nada"],0],
+["No vídeo, quando podemos orar?",["Sempre","Nunca","Só na igreja"],0],
+["Deus ouve?",["Sim","Não","Às vezes"],0],
+["Mentir é?",["Errado","Normal","Certo"],0]
+],
+t5:[
+["Devemos amar?",["Próximo","Só nós","Ninguém"],0],
+["No vídeo, amar inclui?",["Perdoar","Guardar raiva","Ignorar"],0],
+["Ódio é?",["Errado","Normal","Certo"],0],
+["Deus ama?",["Sim","Não","Às vezes"],0]
+],
+t6:[
+["Reino de Deus é?",["Governo","Lugar","Pessoa"],0],
+["No vídeo, quem é o Rei?",["Jesus","Pedro","Moisés"],0],
+["Reino trará?",["Paz","Guerra","Nada"],0],
+["Vai governar?",["Terra","Só céu","Nada"],0]
+],
+t7:[
+["Terra será?",["Paraíso","Destruída","Nada"],0],
+["No vídeo, haverá sofrimento?",["Não","Sim","Talvez"],0],
+["Doença?",["Sumirá","Piorará","Igual"],0],
+["Morte?",["Não existirá","Igual","Mais"],0]
+],
+t8:[
+["Deus quer?",["Obediência","Rebeldia","Nada"],0],
+["No vídeo, obedecer traz?",["Felicidade","Problemas","Nada"],0],
+["Mandamentos são?",["Para o bem","Ruins","Nada"],0],
+["Seguir Bíblia?",["Importante","Não","Opcional"],0]
+],
+t9:[
+["Satanás é?",["Inimigo","Amigo","Nada"],0],
+["No vídeo, ele causa?",["Mal","Bem","Nada"],0],
+["Devemos resistir?",["Sim","Não","Talvez"],0],
+["Deus ajuda?",["Sim","Não","Nunca"],0]
+],
+t10:[
+["Vida eterna é?",["Possível","Impossível","Mentira"],0],
+["No vídeo, Deus promete?",["Cumpre","Esquece","Não liga"],0],
+["Futuro terá?",["Paz","Caos","Nada"],0],
+["Devemos confiar?",["Sempre","Nunca","Às vezes"],0]
+],
+t11:[
+["Deus quer que sejamos?",["Felizes","Tristes","Nada"],0],
+["No vídeo, felicidade vem de?",["Deus","Dinheiro","Fama"],0],
+["Devemos seguir?",["Bíblia","Mundo","Nada"],0],
+["Isso traz?",["Vida","Nada","Problemas"],0]
+],
+t12:[
+["O que escolher?",["Vida eterna","Vida passageira","Nada"],0],
+["No vídeo, qual decisão?",["Seguir Deus","Ignorar","Duvidar"],0],
+["Deus recompensa?",["Sim","Não","Talvez"],0],
+["Devemos fazer?",["Escolher o bem","Nada","Qualquer coisa"],0]
+]
+};
+
+let atual=0,acertos=0,lista=[],temaAtual="",jogador="";
+
+// BOTÕES
+function gerarBotoes(){
+jogador=document.getElementById("nome").value||"Anônimo";
+let html="";
+for(let i=1;i<=12;i++){
+let prev=i-1;
+let liberado=i===1||(window.progresso?.["t"+prev]>=80);
+html+=`<button class="${liberado?'':'locked'}"
+onclick="${liberado?`start('t${i}')`:'alert("🔒 Complete o anterior!")'}">
+📚 Lição ${i}
+</button>`;
+}
+document.getElementById("botoes").innerHTML=html;
+}
+
+// PROGRESSO ONLINE
+async function carregarProgresso(){
+jogador=document.getElementById("nome").value||"Anônimo";
+let snap=await getDocs(collection(db,"ranking"));
+window.progresso={};
+snap.forEach(doc=>{
+let d=doc.data();
+if(d.nome===jogador){
+window.progresso[d.tema]=d.pontos;
+}
+});
+}
+
+setInterval(async ()=>{
+await carregarProgresso();
+gerarBotoes();
+},1500);
 
 // START
-window.start = function(){
-  jogador = document.getElementById("nome").value || "Anônimo";
-  document.getElementById("quiz").style.display="block";
-  load();
+window.start=function(t){
+temaAtual=t;
+lista=temas[t];
+atual=0;
+acertos=0;
+menu.style.display="none";
+quiz.style.display="block";
+load();
 }
 
 // LOAD
 function load(){
-  let q=perguntas[atual];
-  document.getElementById("q").innerText=q[0];
+let q=lista[atual];
+document.getElementById("q").innerText=q[0];
+document.getElementById("bar").style.width=((atual/lista.length)*100)+"%";
 
-  let html="";
-  q[1].forEach((op,i)=>{
-    html+=`<button onclick="resp(${i})">${op}</button>`;
-  });
-  document.getElementById("opts").innerHTML=html;
+let html="";
+q[1].forEach((op,i)=>{
+html+=`<button onclick="resp(${i},this)">${op}</button>`;
+});
+document.getElementById("opts").innerHTML=html;
 }
 
 // RESP
-window.resp = function(i){
-  if(i===perguntas[atual][2]) pontos++;
-  atual++;
-
-  if(atual<perguntas.length){
-    load();
-  }else{
-    fim();
-  }
+window.resp=function(i,btn){
+let certo=lista[atual][2];
+if(i===certo){
+acertos++;
+btn.classList.add("correct");
+document.getElementById("f").innerText=acertoMsg[Math.random()*4|0];
+tocar("acerto");
+}else{
+btn.classList.add("wrong");
+document.getElementById("f").innerText=erroMsg[Math.random()*4|0];
+tocar("erro");
+}
+setTimeout(()=>{
+document.getElementById("f").innerText="";
+atual++;
+if(atual<lista.length) load(); else fim();
+},1200);
 }
 
 // FIM
 async function fim(){
+let pct=Math.round((acertos/lista.length)*100);
+await addDoc(collection(db,"ranking"),{
+nome:jogador,tema:temaAtual,pontos:pct,data:new Date().toLocaleString()
+});
+quiz.innerHTML=`<h2>${pct}%</h2><button onclick="location.reload()">Menu</button>`;
+}
 
-  let pct = Math.round((pontos/perguntas.length)*100);
-
-  // 🔥 SALVA ONLINE
-  await addDoc(collection(db, "ranking"), {
-    nome: jogador,
-    pontos: pct,
-    data: new Date().toLocaleString()
-  });
-
-  document.body.innerHTML = `
-    <h2>${pct}%</h2>
-    <button onclick="location.reload()">Voltar</button>
-  `;
+// FINAL
+window.finalMode=async function(){
+await carregarProgresso();
+let ok=true;
+for(let i=1;i<=12;i++){
+if((window.progresso?.["t"+i]||0)<80) ok=false;
+}
+if(ok) alert("🏆 PARABÉNS!"); else alert("🚫 Complete tudo com 80%");
 }
 
 // RANKING
-window.ranking = async function(){
+window.ranking=async function(){
+let snap=await getDocs(collection(db,"ranking"));
+let dados=[];
+snap.forEach(doc=>dados.push(doc.data()));
+dados.sort((a,b)=>b.pontos-a.pontos);
 
-  let snap = await getDocs(collection(db, "ranking"));
-
-  let dados=[];
-  snap.forEach(doc=>{
-    dados.push(doc.data());
-  });
-
-  dados.sort((a,b)=>b.pontos-a.pontos);
-
-  let html="<h2>🏆 Ranking Global</h2>";
-
-  dados.slice(0,5).forEach(d=>{
-    html+=`<p>${d.nome} - ${d.pontos}%</p>`;
-  });
-
-  html+=`<button onclick="location.reload()">Voltar</button>`;
-
-  document.body.innerHTML=html;
+let html="<h2>🏆 Ranking</h2>";
+dados.slice(0,10).forEach(d=>{
+html+=`<p>${d.nome} - ${d.tema} - ${d.pontos}%</p>`;
+});
+html+="<button onclick='location.reload()'>Voltar</button>";
+menu.innerHTML=html;
 }
 
 </script>
-
 </body>
 </html>
