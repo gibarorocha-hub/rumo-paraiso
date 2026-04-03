@@ -7,10 +7,10 @@
 
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; }
-.correct { background:green; }
-.wrong { background:red; }
-.locked { background:#444; color:#888; }
+button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; cursor:pointer;}
+.correct { background:green; color:#fff; }
+.wrong { background:red; color:#fff; }
+.locked { background:#444; color:#888; cursor:default;}
 .progress { width:90%; max-width:400px; height:10px; background:#333; margin:auto; }
 .progress-bar { height:10px; background:lime; width:0%; }
 input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
@@ -19,21 +19,16 @@ input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
 
 <body>
 
-<h1 onclick="adminClick()">📖 Quiz Bíblico PRO</h1>
+<h1>📖 Quiz Bíblico PRO</h1>
 
 <div id="loginBox">
-<input id="email" placeholder="Email"><br>
-<input id="senha" type="password" placeholder="Senha"><br>
+<input id="nome" placeholder="Digite seu nome"><br>
 <button onclick="login()">Entrar</button>
-<button onclick="cadastrar()">Criar conta</button>
-<button onclick="recuperarSenha()">🔑 Esqueci a senha</button>
 </div>
 
 <div id="menu" style="display:none;">
 <p id="userText"></p>
-<button onclick="sair()">Sair</button>
 <div id="botoes"></div>
-<button onclick="ranking()">🏆 Ranking</button>
 </div>
 
 <div id="quiz" style="display:none;">
@@ -41,7 +36,7 @@ input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
 <h2 id="q"></h2>
 <div id="opts"></div>
 <p id="f"></p>
-<button onclick="voltarMenu()">⬅ Voltar</button>
+<button onclick="voltarMenu()">🔙 Voltar ao Menu</button>
 </div>
 
 <div id="adminPanel" style="display:none;">
@@ -56,8 +51,7 @@ input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, getDocs, deleteDoc, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
 apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
@@ -67,64 +61,31 @@ projectId: "quiz-biblico-e1362"
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-// LOGIN/CADASTRO
-window.cadastrar = async () => {
-  const emailInput = document.getElementById("email");
-  const senhaInput = document.getElementById("senha");
-  try {
-    await createUserWithEmailAndPassword(auth, emailInput.value.trim(), senhaInput.value.trim());
-    alert("Conta criada!");
-  } catch(e){ alert(e.message); }
-}
-
-window.login = async () => {
-  const emailInput = document.getElementById("email");
-  const senhaInput = document.getElementById("senha");
-  try {
-    await signInWithEmailAndPassword(auth, emailInput.value.trim(), senhaInput.value.trim());
-  } catch(e){ alert(e.message); }
-}
-
-window.sair = () => signOut(auth);
-window.recuperarSenha = async () => {
-  const emailInput = document.getElementById("email");
-  try {
-    await sendPasswordResetEmail(auth, emailInput.value.trim());
-    alert("Email enviado!");
-  } catch(e){ alert(e.message); }
-}
-
-// USER
 let jogador="";
-onAuthStateChanged(auth,user=>{
-  if(user){
-    jogador=user.email;
-    loginBox.style.display="none";
-    menu.style.display="block";
-    userText.innerText=jogador;
-    gerarBotoes();
-  } else {
-    loginBox.style.display="block";
-    menu.style.display="none";
-  }
-});
+
+// LOGIN SIMPLES
+window.login=()=>{
+jogador = document.getElementById("nome").value.trim();
+if(!jogador){alert("Digite seu nome"); return;}
+loginBox.style.display="none";
+menu.style.display="block";
+userText.innerText=jogador;
+gerarBotoes();
+}
 
 // SOM
 function tocar(t){
-  let a=document.getElementById(t==="acerto"?"somAcerto":"somErro");
-  a.currentTime=0;
-  a.play().catch(()=>{});
+let a=document.getElementById(t==="acerto"?"somAcerto":"somErro");
+a.currentTime=0; a.play().catch(()=>{});
 }
 
 // FRASES
 let ok=["🔥 Boa!","👏 Top!","😎 Mandou bem!"];
 let no=["💀 Errou!","😂 Quase!","🙈 Vacilou!"];
 
-// PERGUNTAS COMPLETAS
+// PERGUNTAS DE TODAS AS LIÇÕES
 let temas={
-// 🔥 LIÇÃO 1
 t1:[
 ["Segundo João 17:3, o que leva à vida eterna?",["Conhecer a Deus","Dinheiro","Fama"],0],
 ["Salmos 83:18 ensina?",["Jeová é o nome de Deus","Deus não tem nome","Vários deuses"],0],
@@ -137,7 +98,6 @@ t1:[
 ["Conhecer Deus envolve?",["Aprender sobre Ele","Nada","Ignorar"],0],
 ["Resultado de conhecer Deus?",["Vida eterna","Nada","Problemas"],0]
 ],
-// 🔥 LIÇÃO 2
 t2:[
 ["A Bíblia é?",["Palavra de Deus","Livro comum","História"],0],
 ["Provérbios 3:5 ensina?",["Confiar em Deus","Confiar em si","Nos outros"],0],
@@ -150,7 +110,6 @@ t2:[
 ["Bíblia contém?",["Verdade","Mentira","Nada"],0],
 ["Devemos confiar na Bíblia?",["Sim","Não","Talvez"],0]
 ],
-// 🔥 LIÇÃO 3
 t3:[
 ["Deus quer que sejamos?",["Felizes","Tristes","Nada"],0],
 ["Amizade com Deus traz?",["Alegria","Problemas","Nada"],0],
@@ -163,7 +122,6 @@ t3:[
 ["Seguir Deus traz?",["Alegria","Problema","Nada"],0],
 ["Amizade com Deus exige?",["Aproximação","Distância","Nada"],0]
 ],
-// 🔥 LIÇÃO 4
 t4:[
 ["Orar é?",["Falar com Deus","Pensar","Nada"],0],
 ["Deus ouve oração?",["Sim","Não","Às vezes"],0],
@@ -176,7 +134,6 @@ t4:[
 ["Podemos pedir ajuda?",["Sim","Não","Nunca"],0],
 ["Orar traz?",["Paz","Medo","Nada"],0]
 ],
-// 🔥 LIÇÃO 5
 t5:[
 ["Devemos amar?",["Próximo","Só nós","Ninguém"],0],
 ["Perdoar é?",["Certo","Errado","Opcional"],0],
@@ -189,7 +146,6 @@ t5:[
 ["Amor traz?",["Paz","Problemas","Nada"],0],
 ["Amar é importante?",["Sim","Não","Talvez"],0]
 ],
-// 🔥 LIÇÃO 6
 t6:[
 ["Reino de Deus é?",["Governo","Lugar","Pessoa"],0],
 ["Quem é o Rei?",["Jesus","Pedro","Moisés"],0],
@@ -202,7 +158,6 @@ t6:[
 ["Devemos apoiar?",["Sim","Não","Talvez"],0],
 ["Reino é solução?",["Sim","Não","Talvez"],0]
 ],
-// 🔥 LIÇÃO 7
 t7:[
 ["Terra será?",["Paraíso","Destruída","Nada"],0],
 ["Sofrimento vai?",["Acabar","Continuar","Aumentar"],0],
@@ -215,7 +170,6 @@ t7:[
 ["Terra será perfeita?",["Sim","Não","Talvez"],0],
 ["Deus fará isso?",["Sim","Não","Nunca"],0]
 ],
-// 🔥 LIÇÃO 8
 t8:[
 ["Deus quer?",["Obediência","Rebeldia","Nada"],0],
 ["Mandamentos são?",["Para o bem","Ruins","Nada"],0],
@@ -228,7 +182,6 @@ t8:[
 ["Obediência agrada?",["Deus","Homem","Ninguém"],0],
 ["Obedecer é bom?",["Sim","Não","Talvez"],0]
 ],
-// 🔥 LIÇÃO 9
 t9:[
 ["Satanás é?",["Inimigo","Amigo","Nada"],0],
 ["Ele causa?",["Mal","Bem","Nada"],0],
@@ -241,7 +194,6 @@ t9:[
 ["Mal vem de?",["Satanás","Deus","Nada"],0],
 ["Devemos ficar atentos?",["Sim","Não","Talvez"],0]
 ],
-// 🔥 LIÇÃO 10
 t10:[
 ["Vida eterna é?",["Possível","Impossível","Mentira"],0],
 ["Deus promete?",["Cumpre","Esquece","Não liga"],0],
@@ -254,7 +206,6 @@ t10:[
 ["Vida eterna depende?",["Deus","Sorte","Nada"],0],
 ["Devemos esperar?",["Sim","Não","Talvez"],0]
 ],
-// 🔥 LIÇÃO 11
 t11:[
 ["Deus quer que sejamos?",["Felizes","Tristes","Nada"],0],
 ["Felicidade vem de?",["Deus","Dinheiro","Fama"],0],
@@ -267,7 +218,6 @@ t11:[
 ["Devemos confiar?",["Sim","Não","Talvez"],0],
 ["Isso traz alegria?",["Sim","Não","Talvez"],0]
 ],
-// 🔥 LIÇÃO 12
 t12:[
 ["O que escolher?",["Vida eterna","Vida passageira","Nada"],0],
 ["Qual decisão tomar?",["Seguir Deus","Ignorar","Duvidar"],0],
@@ -285,149 +235,128 @@ t12:[
 // VARIÁVEIS
 let atual=0,acertos=0,lista=[],temaAtual="";
 
-// FUNÇÕES
+// PROGRESSO
 async function getProgresso(){
-  let ref=doc(db,"progresso",jogador);
-  let snap=await getDoc(ref);
-  return snap.exists()?snap.data():{};
+let ref=doc(db,"progresso",jogador);
+let snap=await getDoc(ref);
+return snap.exists()?snap.data():{};
 }
 
 async function salvarProgresso(tema,pct){
-  let ref=doc(db,"progresso",jogador);
-  let dados=await getProgresso();
-  dados[tema]=pct;
-  await setDoc(ref,dados);
+let ref=doc(db,"progresso",jogador);
+let dados=await getProgresso();
+dados[tema]=pct;
+await setDoc(ref,dados);
 }
 
-// BOTÕES
+// GERAR BOTÕES DE LIÇÃO
 async function gerarBotoes(){
-  let prog=await getProgresso();
-  let html="";
-  for(let i=1;i<=12;i++){
-    let t="t"+i;
-    let prev=prog["t"+(i-1)]||0;
-    let atualScore=prog[t]||0;
-    if(i>1 && prev<80) html+=`<button class="locked">🔒 Lição ${i}</button>`;
-    else if(atualScore>=80) html+=`<button class="locked">✅ Lição ${i}</button>`;
-    else html+=`<button onclick="start('${t}')">📚 Lição ${i}</button>`;
-  }
-  botoes.innerHTML=html;
+let prog=await getProgresso();
+let html="";
+for(let i=1;i<=12;i++){
+let t="t"+i;
+let prev=prog["t"+(i-1)]||0;
+let atualScore=prog[t]||0;
+if(i>1 && prev<80){
+html+=`<button class="locked">🔒 Lição ${i}</button>`;
+}else if(atualScore>=80){
+html+=`<button class="locked">✅ Lição ${i}</button>`;
+}else{
+html+=`<button onclick="start('${t}')">📚 Lição ${i}</button>`;
+}
+}
+botoes.innerHTML=html;
 }
 
-// START QUIZ
-window.start=t=>{
-  temaAtual=t;
-  lista=temas[t]||temas.t1;
-  atual=0; acertos=0;
-  menu.style.display="none";
-  quiz.style.display="block";
-  load();
+// INICIAR LIÇÃO
+window.start=(t)=>{
+temaAtual=t;
+lista=temas[t];
+atual=0; acertos=0;
+menu.style.display="none";
+quiz.style.display="block";
+load();
 }
 
-// LOAD
+// CARREGAR PERGUNTA
 function load(){
-  let q=lista[atual];
-  qEl.innerText=q[0];
-  bar.style.width=((atual/lista.length)*100)+"%";
-  let html="";
-  q[1].forEach((op,i)=>{ html+=`<button onclick="resp(${i},this)">${op}</button>`; });
-  opts.innerHTML=html;
+let q=lista[atual];
+qEl.innerText=q[0];
+bar.style.width=((atual/lista.length)*100)+"%";
+let html="";
+q[1].forEach((op,i)=>{
+html+=`<button onclick="resp(${i},this)">${op}</button>`;
+});
+opts.innerHTML=html;
 }
 
 // RESPONDER
 window.resp=(i,btn)=>{
-  let certo=lista[atual][2];
-  if(i===certo){ acertos++; btn.classList.add("correct"); f.innerText=ok[Math.random()*3|0]; tocar("acerto"); }
-  else{ btn.classList.add("wrong"); f.innerText=no[Math.random()*3|0]; tocar("erro"); }
-  setTimeout(()=>{
-    f.innerText="";
-    atual++;
-    if(atual<lista.length) load();
-    else fim();
-  },1000);
+let certo=lista[atual][2];
+if(i===certo){acertos++; btn.classList.add("correct"); f.innerText=ok[Math.random()*3|0]; tocar("acerto");}
+else{btn.classList.add("wrong"); f.innerText=no[Math.random()*3|0]; tocar("erro");}
+
+setTimeout(()=>{
+f.innerText="";
+atual++;
+if(atual<lista.length) load();
+else fim();
+},1000);
 }
 
-// FIM
+// FIM DA LIÇÃO
 async function fim(){
-  let pct=Math.round((acertos/lista.length)*100);
-  await salvarProgresso(temaAtual,pct);
-  await addDoc(collection(db,"ranking"),{
-    nome:jogador, tema:temaAtual, pontos:pct, data:new Date().toLocaleString()
-  });
-  quiz.innerHTML=`<h2>${pct}%</h2><button onclick="voltarMenu()">⬅ Menu</button>`;
-}
+let pct=Math.round((acertos/lista.length)*100);
+await salvarProgresso(temaAtual,pct);
 
-// VOLTAR MENU
-window.voltarMenu=()=>{
-  quiz.style.display="none";
-  menu.style.display="block";
-  gerarBotoes();
-}
-
-// RANKING
-window.ranking=async()=>{
-  let snap=await getDocs(collection(db,"ranking"));
-  let html
-  = "<h2>🏆 Ranking</h2>";
-snap.forEach(doc=>{
-  let d=doc.data();
-  html += `<p>${d.nome} - ${d.tema} - ${d.pontos}%</p>`;
+await addDoc(collection(db,"ranking"),{
+nome:jogador,
+tema:temaAtual,
+pontos:pct,
+data:new Date().toLocaleString()
 });
-html += "<button onclick='location.reload()'>Voltar</button>";
-menu.innerHTML = html;
+
+quiz.innerHTML=`<h2>${pct}%</h2><button onclick="voltarMenu()">🔙 Menu</button>`;
 }
 
-// ADMIN
-let clicks=0;
-window.adminClick=()=>{ clicks++; if(clicks>=5) abrirAdmin(); }
+// VOLTAR AO MENU
+window.voltarMenu=()=>{
+quiz.style.display="none";
+menu.style.display="block";
+gerarBotoes();
+}
+
+// ADMIN (somente seu e-mail)
+let adminEmail="gibarorocha@gmail.com";
+window.adminClick=()=>{
+if(jogador!==adminEmail) return;
+abrirAdmin();
+}
 
 async function abrirAdmin(){
-  menu.style.display="none";
-  adminPanel.style.display="block";
+menu.style.display="none";
+adminPanel.style.display="block";
 
-  let snap = await getDocs(collection(db,"progresso"));
+let snap=await getDocs(collection(db,"progresso"));
+let html="<h3>🔍 Controle Admin</h3>";
 
-  let html = `
-    <h3>🔍 Buscar usuário</h3>
-    <input id="busca" oninput="filtrar()" placeholder="Digite email">
-    <div id="lista"></div>
-  `;
+snap.forEach(doc=>{
+let user=doc.id;
+let d=doc.data();
+let prog="";
+for(let i=1;i<=12;i++){prog+=`L${i}:${d["t"+i]||0}% | `;}
+html+=`<div style="border:1px solid #555;margin:10px;padding:10px;"><b>${user}</b><br>${prog}<br><button onclick="resetar('${user}')">🗑 Resetar</button></div>`;
+});
 
-  dados.innerHTML = html;
-
-  let listaHTML = "";
-  snap.forEach(doc=>{
-    let user = doc.id;
-    let d = doc.data();
-    let prog = "";
-    for(let i=1;i<=12;i++){
-      prog += `L${i}:${d["t"+i]||0}% | `;
-    }
-    listaHTML += `
-      <div style="border:1px solid #555;margin:10px;padding:10px;">
-        <b>${user}</b><br>${prog}
-        <br><button onclick="resetar('${user}')">🗑 Resetar</button>
-      </div>
-    `;
-  });
-
-  document.getElementById("lista").innerHTML = listaHTML;
+dados.innerHTML=html;
 }
 
-// FILTRAR USUÁRIO
-window.filtrar=()=>{
-  let txt=document.getElementById("busca").value.toLowerCase();
-  document.querySelectorAll("#lista div").forEach(d=>{
-    d.style.display=d.innerText.toLowerCase().includes(txt)?"block":"none";
-  });
-}
-
-// RESETAR USUÁRIO
+// RESET USUÁRIO
 window.resetar=async(user)=>{
-  if(!confirm("Resetar usuário?")) return;
-  await deleteDoc(doc(db,"progresso",user));
-  alert("Resetado!");
-  abrirAdmin();
+if(!confirm("Resetar usuário?")) return;
+await deleteDoc(doc(db,"progresso",user));
+alert("Resetado!");
+abrirAdmin();
 }
 
 </script>
