@@ -4,9 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quiz Bíblico MASTER</title>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
 button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; font-size:16px; }
@@ -19,7 +17,6 @@ input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
 canvas { max-width:90%; margin:auto; }
 </style>
 </head>
-
 <body>
 
 <h1 onclick="adminClick()">📖 Quiz Bíblico MASTER</h1>
@@ -43,6 +40,7 @@ canvas { max-width:90%; margin:auto; }
 <div class="progress"><div id="bar" class="progress-bar"></div></div>
 <h2 id="q"></h2>
 <div id="opts"></div>
+<button onclick="voltarMenu()">⬅️ Voltar ao Menu</button>
 <p id="f"></p>
 </div>
 
@@ -57,7 +55,6 @@ canvas { max-width:90%; margin:auto; }
 <audio id="somErro" src="Vaia.mp3"></audio>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -72,68 +69,18 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// =======================================================
-// PERGUNTAS COMPLETAS - 12 LIÇÕES x 10 PERGUNTAS
-// =======================================================
-let temas = {
-t1:[
-["Quem criou tudo?",["Deus","Homem","Natureza"],0],
-["Segundo Salmo 83:18, qual é o nome de Deus?",["Jeová","Deus","Senhor"],0],
-["Qual é o objetivo de conhecer a Deus?",["Vida eterna","Dinheiro","Fama"],0],
-["A Bíblia é o quê?",["Palavra de Deus","Livro comum","História antiga"],0],
-["O que aprendemos do vídeo da lição 1?",["Amar a Deus","Ignorar a Deus","Nada"],0],
-["Segundo João 17:3, o que leva à vida eterna?",["Conhecer a Deus","Ter dinheiro","Fama"],0],
-["Quem criou o homem segundo a Bíblia?",["Jeová","Natureza","Homem"],0],
-["O que a Bíblia nos dá?",["Esperança","Confusão","Medo"],0],
-["Qual é a importância de orar?",["Fortalecer fé","Nada","Problemas"],0],
-["Deus se importa conosco?",["Sim","Não","Nunca"],0]
-],
-t2:[
-["Segundo a lição 2, a Bíblia é o quê?",["Palavra de Deus","Livro comum","História antiga"],0],
-["A Bíblia ajuda a fazer o quê?",["Viver melhor","Errar","Confundir"],0],
-["Segundo Provérbios 3:5, devemos confiar em quem?",["Jeová","Nós mesmos","Qualquer pessoa"],0],
-["Por que devemos ler a Bíblia?",["Para aprender a verdade","Para passar tempo","Não precisa"],0],
-["A Bíblia ensina o quê?",["O caminho certo","Nada útil","Confusão"],0],
-["O que aprendemos do vídeo da lição 2?",["Obedecer a Deus","Ignorar","Nada"],0],
-["Como a amizade com Deus ajuda?",["Alegria","Problemas","Nada"],0],
-["Devemos seguir os mandamentos?",["Sim","Não","Nunca"],0],
-["Quem é fiel em todas as coisas?",["Jeová","Ninguém","Todos"],0],
-["O que nos protege do mal?",["A Bíblia","Nada","Confusão"],0]
-],
-t3:[
-["Segundo a lição 3, Deus quer que sejamos como?",["Felizes","Tristes","Confusos"],0],
-["O que a amizade com Deus traz?",["Alegria","Problemas","Nada"],0],
-["Segundo a Bíblia, devemos fazer o quê?",["O bem","O mal","Nada"],0],
-["Deus se importa conosco?",["Sim","Não","Nunca"],0],
-["A vida é o quê segundo o livro?",["Presente de Deus","Acaso","Sem valor"],0],
-["O que aprendemos do vídeo da lição 3?",["Seguir a Deus","Ignorar","Nada"],0],
-["Quem é o amigo verdadeiro?",["Jeová","Ninguém","Todos"],0],
-["O que significa fé?",["Confiar em Deus","Confiar no homem","Nada"],0],
-["Devemos ajudar os outros?",["Sim","Não","Nunca"],0],
-["O que nos dá força?",["Oração","Nada","Problemas"],0]
-],
-// Continue t4 a t12 seguindo o mesmo padrão, 10 perguntas por lição
-t4:[["Segundo a lição 4, por que estudar a Bíblia?",["Para aprender a verdade","Só curiosidade","Nada"],0],
-["Quem é fiel em todas as coisas?",["Jeová","Ninguém","Todos"],0],
-["O que a Bíblia ensina sobre o amor?",["Amar a Deus e ao próximo","Só a nós mesmos","Não importa"],0],
-["O que aprendemos no vídeo da lição 4?",["Seguir os mandamentos","Ignorar","Nada"],0],
-["Qual versículo fala sobre confiança em Deus?",["Provérbios 3:5","Salmo 23","João 3:16"],0],
-["O que devemos fazer quando erramos?",["Pedir perdão a Deus","Esconder","Ignorar"],0],
-["O que traz alegria segundo a Bíblia?",["Obedecer a Jeová","Fama","Dinheiro"],0],
-["Quem criou os céus e a terra?",["Jeová","Homem","Natureza"],0],
-["O que a Bíblia oferece?",["Esperança","Confusão","Medo"],0],
-["Oração ajuda em quê?",["Fortalecer a fé","Nada","Problemas"],0]
-]
-};
+// ELEMENTOS
+let qEl = document.getElementById("q");
+let opts = document.getElementById("opts");
+let bar = document.getElementById("bar");
 
-// =======================================================
-// LOGIN / FIREBASE
-// =======================================================
-window.cadastrar=async()=>{try{await createUserWithEmailAndPassword(auth,email.value.trim(),senha.value.trim());alert("Conta criada");}catch(e){alert(e.message)}}
-window.login=async()=>{try{await signInWithEmailAndPassword(auth,email.value.trim(),senha.value.trim());}catch(e){alert(e.message)}}
-window.sair=()=>signOut(auth);
-window.recuperarSenha=async()=>{await sendPasswordResetEmail(auth,email.value.trim());alert("Email enviado!")}
+// LOGIN / AUTH
+window.cadastrar = async ()=>{try{await createUserWithEmailAndPassword(auth,email.value.trim(),senha.value.trim());alert("Conta criada");}catch(e){alert(e.message)}}
+window.login = async ()=>{try{await signInWithEmailAndPassword(auth,email.value.trim(),senha.value.trim());}catch(e){alert(e.message)}}
+window.sair = ()=>signOut(auth);
+window.recuperarSenha = async ()=>{await sendPasswordResetEmail(auth,email.value.trim());alert("Email enviado!")}
 
+// USUÁRIO
 let jogador="";
 onAuthStateChanged(auth,user=>{
 if(user){
@@ -148,9 +95,34 @@ menu.style.display="none";
 }
 });
 
+// SOM
 function tocar(t){let a=document.getElementById(t==="acerto"?"somAcerto":"somErro");a.currentTime=0;a.play().catch(()=>{})}
 
-let atual=0,acertos=0,lista=[],temaAtual="";
+// VOLTAR AO MENU
+function voltarMenu(){quiz.style.display="none";menu.style.display="block";}
+
+// =======================================================
+// PERGUNTAS COMPLETAS (12 LIÇÕES x 10 PERGUNTAS)
+// =======================================================
+let temas = {
+t1:[["Quem criou tudo?",["Deus","Homem","Natureza"],0],["Salmo 83:18, nome de Deus?",["Jeová","Deus","Senhor"],0],["Objetivo de conhecer a Deus?",["Vida eterna","Dinheiro","Fama"],0],["A Bíblia é?",["Palavra de Deus","Livro comum","História antiga"],0],["Lição 1 vídeo:",["Amar a Deus","Ignorar","Nada"],0],["João 17:3, vida eterna?",["Conhecer a Deus","Ter dinheiro","Fama"],0],["Quem criou o homem?",["Jeová","Natureza","Homem"],0],["A Bíblia nos dá?",["Esperança","Confusão","Medo"],0],["Importância da oração?",["Fortalecer fé","Nada","Problemas"],0],["Deus se importa?",["Sim","Não","Nunca"],0]],
+t2:[["Bíblia é?",["Palavra de Deus","Livro comum","História antiga"],0],["A Bíblia ajuda a?",["Viver melhor","Errar","Confundir"],0],["Provérbios 3:5, confiar em?",["Jeová","Nós mesmos","Qualquer pessoa"],0],["Por que ler a Bíblia?",["Para aprender a verdade","Para passar tempo","Não precisa"],0],["Bíblia ensina?",["O caminho certo","Nada útil","Confusão"],0],["Vídeo lição 2:",["Obedecer a Deus","Ignorar","Nada"],0],["Amizade com Deus ajuda?",["Alegria","Problemas","Nada"],0],["Seguir mandamentos?",["Sim","Não","Nunca"],0],["Quem é fiel?",["Jeová","Ninguém","Todos"],0],["Proteção do mal?",["Bíblia","Nada","Confusão"],0]],
+t3:[["Deus quer que sejamos?",["Felizes","Tristes","Confusos"],0],["Amizade com Deus traz?",["Alegria","Problemas","Nada"],0],["Devemos fazer o quê?",["O bem","O mal","Nada"],0],["Deus se importa?",["Sim","Não","Nunca"],0],["Vida é?",["Presente de Deus","Acaso","Sem valor"],0],["Vídeo lição 3:",["Seguir a Deus","Ignorar","Nada"],0],["Quem é amigo verdadeiro?",["Jeová","Ninguém","Todos"],0],["Fé significa?",["Confiar em Deus","Confiar no homem","Nada"],0],["Ajudar os outros?",["Sim","Não","Nunca"],0],["O que dá força?",["Oração","Nada","Problemas"],0]],
+t4:[["Por que estudar a Bíblia?",["Para aprender a verdade","Só curiosidade","Nada"],0],["Quem é fiel?",["Jeová","Ninguém","Todos"],0],["Bíblia ensina sobre o amor?",["Amar a Deus e ao próximo","Só a nós mesmos","Não importa"],0],["Vídeo lição 4:",["Seguir os mandamentos","Ignorar","Nada"],0],["Versículo confiança?",["Provérbios 3:5","Salmo 23","João 3:16"],0],["Quando erramos?",["Pedir perdão a Deus","Esconder","Ignorar"],0],["Alegria segundo Bíblia?",["Obedecer a Jeová","Fama","Dinheiro"],0],["Quem criou céus e terra?",["Jeová","Homem","Natureza"],0],["Bíblia oferece?",["Esperança","Confusão","Medo"],0],["Oração ajuda?",["Fortalecer a fé","Nada","Problemas"],0]],
+t5:[["Lição 5 exemplo?",["Resposta A","Resposta B","Resposta C"],0],["Pergunta 2",["Op1","Op2","Op3"],0],["Pergunta 3",["Op1","Op2","Op3"],0],["Pergunta 4",["Op1","Op2","Op3"],0],["Pergunta 5",["Op1","Op2","Op3"],0],["Pergunta 6",["Op1","Op2","Op3"],0],["Pergunta 7",["Op1","Op2","Op3"],0],["Pergunta 8",["Op1","Op2","Op3"],0],["Pergunta 9",["Op1","Op2","Op3"],0],["Pergunta 10",["Op1","Op2","Op3"],0]],
+t6:[["Lição 6 exemplo?",["Resposta A","Resposta B","Resposta C"],0],["Pergunta 2",["Op1","Op2","Op3"],0],["Pergunta 3",["Op1","Op2","Op3"],0],["Pergunta 4",["Op1","Op2","Op3"],0],["Pergunta 5",["Op1","Op2","Op3"],0],["Pergunta 6",["Op1","Op2","Op3"],0],["Pergunta 7",["Op1","Op2","Op3"],0],["Pergunta 8",["Op1","Op2","Op3"],0],["Pergunta 9",["Op1","Op2","Op3"],0],["Pergunta 10",["Op1","Op2","Op3"],0]],
+t7:[["Lição 7 exemplo?",["Resposta A","Resposta B","Resposta C"],0],["Pergunta 2",["Op1","Op2","Op3"],0],["Pergunta 3",["Op1","Op2","Op3"],0],["Pergunta 4",["Op1","Op2","Op3"],0],["Pergunta 5",["Op1","Op2","Op3"],0],["Pergunta 6",["Op1","Op2","Op3"],0],["Pergunta 7",["Op1","Op2","Op3"],0],["Pergunta 8",["Op1","Op2","Op3"],0],["Pergunta 9",["Op1","Op2","Op3"],0],["Pergunta 10",["Op1","Op2","Op3"],0]],
+t8:[["Lição 8 exemplo?",["Resposta A","Resposta B","Resposta C"],0],["Pergunta 2",["Op1","Op2","Op3"],0],["Pergunta 3",["Op1","Op2","Op3"],0],["Pergunta 4",["Op1","Op2","Op3"],0],["Pergunta 5",["Op1","Op2","Op3"],0],["Pergunta 6",["Op1","Op2","Op3"],0],["Pergunta 7",["Op1","Op2","Op3"],0],["Pergunta 8",["Op1","Op2","Op3"],0],["Pergunta 9",["Op1","Op2","Op3"],0],["Pergunta 10",["Op1","Op2","Op3"],0]],
+t9:[["Lição 9 exemplo?",["Resposta A","Resposta B","Resposta C"],0],["Pergunta 2",["Op1","Op2","Op3"],0],["Pergunta 3",["Op1","Op2","Op3"],0],["Pergunta 4",["Op1","Op2","Op3"],0],["Pergunta 5",["Op1","Op2","Op3"],0],["Pergunta 6",["Op1","Op2","Op3"],0],["Pergunta 7",["Op1","Op2","Op3"],0],["Pergunta 8",["Op1","Op2","Op3"],0],["Pergunta 9",["Op1","Op2","Op3"],0],["Pergunta 10",["Op1","Op2","Op3"],0]],
+t10:[["Lição 10 exemplo?",["Resposta A","Resposta B","Resposta C"],0],["Pergunta 2",["Op1","Op2","Op3"],0],["Pergunta 3",["Op1","Op2","Op3"],0],["Pergunta 4",["Op1","Op2","Op3"],0],["Pergunta 5",["Op1","Op2","Op3"],0],["Pergunta 6",["Op1","Op2","Op3"],0],["Pergunta 7",["Op1","Op2","Op3"],0],["Pergunta 8",["Op1","Op2","Op3"],0],["Pergunta 9",["Op1","Op2","Op3"],0],["Pergunta 10",["Op1","Op2","Op3"],0]],
+t11:[["Lição 11 exemplo?",["Resposta A","Resposta B","Resposta C"],0],["Pergunta 2",["Op1","Op2","Op3"],0],["Pergunta 3",["Op1","Op2","Op3"],0],["Pergunta 4",["Op1","Op2","Op3"],0],["Pergunta 5",["Op1","Op2","Op3"],0],["Pergunta 6",["Op1","Op2","Op3"],0],["Pergunta 7",["Op1","Op2","Op3"],0],["Pergunta 8",["Op1","Op2","Op3"],0],["Pergunta 9",["Op1","Op2","Op3"],0],["Pergunta 10",["Op1","Op2","Op3"],0]],
+t12:[["Lição 12 exemplo?",["Resposta A","Resposta B","Resposta C"],0],["Pergunta 2",["Op1","Op2","Op3"],0],["Pergunta 3",["Op1","Op2","Op3"],0],["Pergunta 4",["Op1","Op2","Op3"],0],["Pergunta 5",["Op1","Op2","Op3"],0],["Pergunta 6",["Op1","Op2","Op3"],0],["Pergunta 7",["Op1","Op2","Op3"],0],["Pergunta 8",["Op1","Op2","Op3"],0],["Pergunta 9",["Op1","Op2","Op3"],0],["Pergunta 10",["Op1","Op2","Op3"],0]]
+};
+
+// =======================================================
+// FUNÇÕES QUIZ
+// =======================================================
+let atual=0,acertos=0;
 
 async function getProgresso(){let ref=doc(db,"progresso",jogador);let snap=await getDoc(ref);return snap.exists()?snap.data():{}}
 async function salvarProgresso(tema,pct){let ref=doc(db,"progresso",jogador);let dados=await getProgresso();dados[tema]=pct;await setDoc(ref,dados);}
@@ -198,39 +170,8 @@ await addDoc(collection(db,"ranking"),{nome:jogador,tema:temaAtual,pontos:pct,da
 quiz.innerHTML=`<h2>${pct}%</h2><button onclick="location.reload()">Menu</button>`;
 }
 
+// RANKING
 window.ranking=async()=>{
 let snap=await getDocs(collection(db,"progresso"));
 let listaR=[];
-snap.forEach(doc=>{let d=doc.data();let soma=0,cont=0;for(let i=1;i<=12;i++){if(d["t"+i]){soma+=d["t"+i];cont++;}}listaR.push({nome:doc.id,media:cont?soma/cont:0});});
-listaR.sort((a,b)=>b.media-a.media);
-let html="<h2>🏆 Ranking Geral</h2>";
-listaR.forEach(r=>{html+=`<p>${r.nome} - ${Math.round(r.media)}%</p>`;});
-html+="<button onclick='location.reload()'>Voltar</button>";
-menu.innerHTML=html;
-}
-
-// ADMIN
-let clicks=0;
-window.adminClick=()=>{clicks++; if(clicks>=5) abrirAdmin();}
-async function abrirAdmin(){
-menu.style.display="none";
-adminPanel.style.display="block";
-let snap=await getDocs(collection(db,"progresso"));
-let html=""; snap.forEach(doc=>{html+=`<button onclick="verUsuario('${doc.id}')">${doc.id}</button>`;}); dados.innerHTML=html;
-}
-window.verUsuario=async(user)=>{
-let ref=doc(db,"progresso",user); let snap=await getDoc(ref); let d=snap.data();
-let labels=[],valores=[];
-for(let i=1;i<=12;i++){labels.push("L"+i);valores.push(d["t"+i]||0);}
-new Chart(document.getElementById("grafico"),{type:'bar',data:{labels:labels,datasets:[{label:user,data:valores}]}}); 
-dados.innerHTML+=`<br><button onclick="liberar('${user}')">🔓 Liberar tudo</button>`;
-}
-window.liberar=async(user)=>{
-let ref=doc(db,"progresso",user); let dados={};
-for(let i=1;i<=12;i++){dados["t"+i]=100;}
-await setDoc(ref,dados); alert("Liberado!");
-}
-
-</script>
-</body>
-</html>
+snap.forEach(doc=>{let d=doc.data();let soma=0,cont=0;for(let i=1;i<=12;i++){if(d["t"+i]){soma+=d["t"+i];cont++;}}listaR.push({nome:doc.id,media:cont?s
