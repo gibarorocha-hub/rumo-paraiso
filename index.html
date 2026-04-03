@@ -1,19 +1,17 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Quiz Bíblico MASTER</title>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; }
+button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; font-size:18px; }
 .correct { background:green; }
 .wrong { background:red; }
 .locked { background:#444; color:#888; }
-.progress { width:90%; max-width:400px; height:10px; background:#333; margin:auto; }
+.progress { width:90%; max-width:400px; height:10px; background:#333; margin:auto; border-radius:5px; }
 .progress-bar { height:10px; background:lime; width:0%; }
 input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
 canvas { max-width:90%; margin:auto; }
@@ -57,199 +55,186 @@ canvas { max-width:90%; margin:auto; }
 <audio id="somErro" src="Vaia.mp3"></audio>
 
 <script type="module">
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// CONFIG FIREBASE
 const firebaseConfig = {
-apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
-authDomain: "quiz-biblico-e1362.firebaseapp.com",
-projectId: "quiz-biblico-e1362"
+apiKey: "SUA_API_KEY",
+authDomain: "SEU_AUTH_DOMAIN",
+projectId: "SEU_PROJECT_ID"
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// DOM
-const qEl = document.getElementById("q");
-const opts = document.getElementById("opts");
-const menu = document.getElementById("menu");
-const quiz = document.getElementById("quiz");
-const botoes = document.getElementById("botoes");
-const dados = document.getElementById("dados");
-const adminPanel = document.getElementById("adminPanel");
-const loginBox = document.getElementById("loginBox");
-const emailInput = document.getElementById("email");
-const senhaInput = document.getElementById("senha");
-const userText = document.getElementById("userText");
+// LOGIN / CADASTRO / LOGOUT
+window.cadastrar=async()=>{try{await createUserWithEmailAndPassword(auth,email.value.trim(),senha.value.trim());alert("Conta criada");}catch(e){alert(e.message)}}
+window.login=async()=>{try{await signInWithEmailAndPassword(auth,email.value.trim(),senha.value.trim());}catch(e){alert(e.message)}}
+window.sair=()=>signOut(auth);
+window.recuperarSenha=async()=>{await sendPasswordResetEmail(auth,email.value.trim());alert("Email enviado!")}
 
-// SOM
-function tocar(t){let a=document.getElementById(t==="acerto"?"somAcerto":"somErro");a.currentTime=0;a.play().catch(()=>{})}
-
-// PERGUNTAS EXEMPLO
-let temas = {
-  t1:[
-    ["Quem criou tudo?", ["Deus","Homem","Natureza"],0],
-    ["Qual é o nome de Deus?", ["Jeová","Alá","Buda"],0],
-    ["O que leva à vida eterna?", ["Conhecer a Deus","Ter dinheiro","Fama"],0]
-  ],
-  t2:[
-    ["A Bíblia é o quê?", ["Palavra de Deus","Livro comum","História antiga"],0],
-    ["Devemos confiar em quem?", ["Jeová","Nós mesmos","Qualquer pessoa"],0]
-  ]
-};
-
-// LOGIN / CADASTRO
-window.cadastrar = async () => {
-  const email = emailInput.value.trim();
-  const senha = senhaInput.value.trim();
-  if(!email || !senha){alert("Preencha email e senha"); return;}
-  try { await createUserWithEmailAndPassword(auth,email,senha); alert("Conta criada!"); }
-  catch(e){alert(e.message);}
-}
-window.login = async () => {
-  const email = emailInput.value.trim();
-  const senha = senhaInput.value.trim();
-  if(!email || !senha){alert("Preencha email e senha"); return;}
-  try { await signInWithEmailAndPassword(auth,email,senha); }
-  catch(e){alert(e.message);}
-}
-window.sair = ()=> signOut(auth);
-window.recuperarSenha = async ()=>{ await sendPasswordResetEmail(auth,emailInput.value.trim()); alert("Email enviado!"); }
-
-// USUÁRIO LOGADO
+// Usuário logado
 let jogador="";
 onAuthStateChanged(auth,user=>{
-  if(user){
-    jogador=user.email;
-    loginBox.style.display="none";
-    menu.style.display="block";
-    userText.innerText=jogador;
-    gerarBotoes();
-  } else {
-    loginBox.style.display="block";
-    menu.style.display="none";
-  }
+if(user){jogador=user.email;loginBox.style.display="none";menu.style.display="block";userText.innerText=jogador;gerarBotoes();}
+else{loginBox.style.display="block";menu.style.display="none";}
 });
 
-// PROGRESSO
-async function getProgresso(){
-  let ref = doc(db,"progresso",jogador);
-  let snap = await getDoc(ref);
-  return snap.exists()?snap.data():{};
-}
-async function salvarProgresso(tema,pct){
-  let ref = doc(db,"progresso",jogador);
-  let dados = await getProgresso();
-  dados[tema] = pct;
-  await setDoc(ref,dados);
-}
+// Som
+function tocar(t){let a=document.getElementById(t==="acerto"?"somAcerto":"somErro");a.currentTime=0;a.play().catch(()=>{})}
 
-// BOTÕES DE LIÇÃO
-async function gerarBotoes(){
-  let prog = await getProgresso();
-  let html = "";
-  let total = Object.keys(temas).length;
-  for(let i=1;i<=total;i++){
-    let t="t"+i;
-    let prev = prog["t"+(i-1)]||0;
-    let atualScore = prog[t]||0;
-    if(i>1 && prev<80){
-      html+=`<button class="locked">🔒 Lição ${i}</button>`;
-    } else {
-      html+=`<button onclick="start('${t}')">📚 Lição ${i}</button>`;
-    }
-  }
-  botoes.innerHTML=html;
-}
+// PERGUNTAS COMPLETAS 12 LIÇÕES x 10 PERGUNTAS
+let temas={
+t1:[
+["Segundo João 17:3, o que leva à vida eterna?", ["Conhecer a Deus","Ter dinheiro","Fama"],0],
+["O que diz Salmo 83:18?", ["Deus se chama Jeová","Deus não tem nome","Existem vários deuses"],0],
+["Por que conhecer a Deus é importante?", ["Traz vida eterna","Não muda nada","Só curiosidade"],0],
+["A Bíblia traz o quê para nossa vida?", ["Esperança","Medo","Confusão"],0],
+["Quem criou tudo segundo a Bíblia?", ["Jeová","Homem","Natureza"],0],
+["O vídeo da lição 1 ensina que devemos:", ["Confiar em Deus","Confiar em dinheiro","Confiar em qualquer pessoa"],0],
+["Qual é o caminho para a felicidade eterna?", ["Seguir os ensinamentos da Bíblia","Acumular riquezas","Fazer o que quiser"],0],
+["Como devemos tratar os outros?", ["Com amor e respeito","Ignorando-os","Com indiferença"],0],
+["O que a Bíblia ensina sobre oração?", ["Orar sempre a Jeová","Não é necessário","Só em datas especiais"],0],
+["Aprender sobre Deus ajuda a:", ["Viver corretamente","Viver sem regras","Apenas conhecer histórias"],0]
+],
+t2:[
+["A Bíblia é o quê?", ["Palavra de Deus","Livro comum","História antiga"],0],
+["Devemos confiar em quem?", ["Jeová","Nós mesmos","Qualquer pessoa"],0],
+["O vídeo da lição 2 mostra que a amizade com Deus traz:", ["Alegria","Problemas","Nada"],0],
+["Segundo Provérbios 3:5, devemos confiar em quem?", ["Jeová","Nós mesmos","Qualquer pessoa"],0],
+["Por que devemos ler a Bíblia?", ["Para aprender a verdade","Para passar tempo","Não precisa"],0],
+["Como Deus se comunica conosco?", ["Através da Bíblia","Só em sonhos","Não comunica"],0],
+["O que a Bíblia ensina sobre decisões?", ["Confiar em Deus","Ignorar Deus","Fazer o que quiser"],0],
+["O que aprendemos com os exemplos bíblicos?", ["Seguir o caminho certo","Confusão","Nada"],0],
+["A importância de seguir os mandamentos é:", ["Proteção e bênção","Nada","Só tradição"],0],
+["Compartilhar com os outros traz:", ["Alegria","Prejuízo","Indiferença"],0]
+],
+t3:[
+["Deus quer que sejamos como?", ["Felizes","Tristes","Confusos"],0],
+["A amizade com Deus traz:", ["Alegria","Problemas","Nada"],0],
+["Devemos fazer o quê?", ["O bem","O mal","Nada"],0],
+["Deus se importa conosco?", ["Sim","Não","Nunca"],0],
+["A vida é o quê segundo o livro?", ["Presente de Deus","Acaso","Sem valor"],0],
+["Confiar em Deus traz:", ["Paz","Preocupação","Nada"],0],
+["O que a Bíblia ensina sobre generosidade?", ["Dar e ajudar","Guardando tudo","Ignorar os outros"],0],
+["Como devemos tratar os inimigos?", ["Com bondade","Com ódio","Ignorar"],0],
+["Objetivo principal do cristão?", ["Viver de acordo com a Bíblia","Fazer tudo errado","Ser indiferente"],0],
+["Aprender com erros ajuda a:", ["Crescer espiritualmente","Ficar preso no erro","Nada"],0]
+],
+t4:[
+["O que a Bíblia ensina sobre oração?", ["Orar sempre","Orar só de vez em quando","Não orar"],0],
+["Segundo Salmo 34:18, Deus está perto de quem?", ["Dos de coração quebrantado","Dos ricos","Dos poderosos"],0],
+["Por que devemos obedecer a Deus?", ["Ele sabe o que é melhor","Não precisamos","Só por tradição"],0],
+["O que a Bíblia ensina sobre amor?", ["Amar a todos","Amar só amigos","Não amar"],0],
+["O que aprendemos com os exemplos de Jesus?", ["Seguir o caminho certo","Ignorar os exemplos","Fazer o que quiser"],0],
+["O vídeo mostra que paciência é:", ["Virtude de Deus","Fraco","Não necessário"],0],
+["Segundo Provérbios 15:1, como devemos responder?", ["Com palavras suaves","Com raiva","Com silêncio"],0],
+["A Bíblia diz que devemos ajudar quem?", ["Todos que precisam","Só familiares","Ninguém"],0],
+["Qual é a recompensa de obedecer a Deus?", ["Bênçãos e paz","Nada","Problemas"],0],
+["A lição ensina que a fé nos ajuda a:", ["Confiar em Deus","Confiar no dinheiro","Confiar em nós mesmos"],0]
+],
+t5:[
+["Segundo a Bíblia, o que devemos evitar?", ["Pecado","Bondade","Amor"],0],
+["O vídeo da lição 5 mostra que gratidão é:", ["Importante","Desnecessária","Ruim"],0],
+["Qual é a promessa de Deus para quem confia Nele?", ["Vida eterna","Riqueza","Fama"],0],
+["Como devemos tratar os necessitados?", ["Com amor","Ignorando","Só com amigos"],0],
+["O que Salmo 119:105 diz?", ["Lâmpada para meus pés","Nada","Somente luzes"],0],
+["O vídeo ensina que bondade traz:", ["Felicidade","Problemas","Indiferença"],0],
+["Devemos perdoar quem nos ofende?", ["Sim","Não","Às vezes"],0],
+["A Bíblia mostra que a oração deve ser:", ["Regular","Ocasional","Nunca"],0],
+["O que aprendemos com histórias bíblicas?", ["Seguir a vontade de Deus","Ignorar","Fazer o que quiser"],0],
+["O vídeo mostra que fé é:", ["Confiar totalmente em Deus","Duvidar sempre","Só palavras"],0]
+],
+t6:[
+["O que significa confiar em Deus?", ["Crer no Seu plano","Fazer só o que queremos","Ignorar Deus"],0],
+["Segundo Salmo 23:1, Deus é:", ["Meu pastor","Inimigo","Indiferente"],0],
+["O vídeo da lição 6 ensina que devemos:", ["Seguir a Bíblia","Só ler","Não ler"],0],
+["O que a Bíblia ensina sobre tentação?", ["Evitar o pecado","Ceder sempre","Ignorar"],0],
+["Quem é nosso exemplo perfeito?", ["Jesus","Ninguém","Todos"],0],
+["A Bíblia ensina a importância da oração para:", ["Força e sabedoria","Nada","Confusão"],0],
+["O que significa humildade?", ["Reconhecer Deus","Ser arrogante","Só palavras"],0],
+["Como devemos tratar irmãos na fé?", ["Com amor","Com raiva","Ignorando"],0],
+["O vídeo mostra que paciência é:", ["Virtude","Fraqueza","Desnecessária"],0],
+["O que devemos fazer quando erramos?", ["Aprender e pedir perdão","Ignorar","Culpar outros"],0]
+],
+t7:[
+["Segundo Provérbios 3:6, devemos:", ["Reconhecer Deus em tudo","Fazer só nossa vontade","Ignorar Deus"],0],
+["O vídeo ensina que bondade é:", ["Ajudar os outros","Só pensar em si","Ignorar"],0],
+["Como Deus mostra amor?", ["Através da Bíblia","Nunca","Só palavras"],0],
+["Segundo Salmo 37:4, ao nos deleitarmos em Deus:", ["Ele nos concede desejos","Nada","Confusão"],0],
+["O que significa gratidão?", ["Agradecer a Deus","Esquecer","Só palavras"],0],
+["O vídeo mostra que obedecer traz:", ["Bênçãos","Problemas","Nada"],0],
+["O que a Bíblia ensina sobre paciência?", ["Esperar com fé","Impaciência","Ignorar"],0],
+["Segundo 1 João 4:8, Deus é:", ["Amor","Indiferente","Somente justiça"],0],
+["O que devemos evitar?", ["Pecado","Bondade","Amor"],0],
+["O vídeo mostra que aprender com erros é:", ["Crescer espiritualmente","Fracasso","Indiferença"],0]
+],
+t8:[
+["O que Salmo 119:11 diz sobre a palavra de Deus?", ["Guardar no coração","Ignorar","Ler só por ler"],0],
+["Segundo a lição 8, a Bíblia ajuda a:", ["Tomar decisões corretas","Errar sempre","Confundir"],0],
+["O vídeo mostra que oração ajuda a:", ["Focar em Deus","Ignorar","Só palavras"],0],
+["O que significa fé verdadeira?", ["Confiar totalmente em Deus","Duvidar","Ignorar"],0],
+["Como a Bíblia mostra amor ao próximo?", ["Ajudando","Ignorando","Só palavras"],0],
+["O vídeo ensina que paciência traz:", ["Paz","Problemas","Indiferença"],0],
+["O que devemos fazer com nossos inimigos?", ["Amar","Odiar","Ignorar"],0],
+["Segundo Provérbios 16:3, devemos:", ["Entregar a Deus nossos planos","Só confiar em nós","Ignorar"],0],
+["O que a Bíblia ensina sobre humildade?", ["Servir aos outros","Ser arrogante","Ignorar"],0],
+["O vídeo mostra que compartilhar traz:", ["Alegria","Confusão","Problemas"],0]
+],
+t9:[
+["Segundo Tiago 1:5, devemos pedir a Deus:", ["Sabedoria","Riqueza","Fama"],0],
+["O vídeo ensina que bondade é:", ["Atos de amor","Só palavras","Ignorar"],0],
+["O que a Bíblia ensina sobre perdão?", ["Perdoar sempre","Nunca","Só às vezes"],0],
+["Como Deus se importa conosco?", ["Ele nos guia","Ignora","Só observa"],0],
+["Segundo Salmo 46:1, Deus é:", ["Refúgio e força","Inimigo","Indiferente"],0],
+["O vídeo mostra que fé traz:", ["Coragem","Medo","Confusão"],0],
+["O que significa confiar em Deus?", ["Aceitar Seus caminhos","Ignorar","Só palavras"],0],
+["A Bíblia ensina que devemos falar a verdade:", ["Sempre","Às vezes","Nunca"],0],
+["O vídeo mostra que gratidão é:", ["Fundamental","Desnecessária","Confusão"],0],
+["O que aprendemos com exemplos bíblicos?", ["Seguir Deus","Ignorar","Só palavras"],0]
+],
+t10:[
+["O que a Bíblia ensina sobre generosidade?", ["Dar e ajudar","Guardar","Ignorar"],0],
+["Segundo o vídeo da lição 10, oração ajuda a:", ["Focar em Deus","Ignorar","Só palavras"],0],
+["Quem é nosso modelo perfeito?", ["Jesus","Ninguém","Todos"],0],
+["Como devemos tratar inimigos?", ["Com amor","Com raiva","Ignorar"],0],
+["O que significa humildade?", ["Servir aos outros","Ser arrogante","Ignorar"],0],
+["O vídeo mostra que paciência é:", ["Virtude","Fraqueza","Desnecessária"],0],
+["Segundo Provérbios 3:9, devemos:", ["Honrar a Deus","Só a nós","Ignorar"],0],
+["O que a Bíblia ensina sobre fé?", ["Confiar totalmente","Duvidar","Ignorar"],0],
+["O vídeo mostra que aprender com erros é:", ["Crescer","Fracasso","Indiferença"],0],
+["Como devemos compartilhar o que aprendemos?", ["Com amor","Só para nós","Ignorar"],0]
+],
+t11:[
+["Segundo Salmo 1:1-3, quem prospera?", ["Quem segue Deus","Quem ignora","Todos"],0],
+["O vídeo ensina que gratidão traz:", ["Felicidade","Confusão","Problemas"],0],
+["O que significa perdoar?", ["Esquecer e liberar","Guardar rancor","Ignorar"],0],
+["Como Deus se revela a nós?", ["Através da Bíblia","Nunca","Só sonhos"],0],
+["O que a Bíblia ensina sobre oração?", ["Comunicação com Deus","Ignorar","Só palavras"],0],
+["Segundo 1 Coríntios 13:4-7, amor é:", ["Paciente e bondoso","Orgulhoso","Indiferente"],0],
+["O vídeo mostra que fé traz:", ["Força","Medo","Confusão"],0],
+["Como devemos lidar com tentação?", ["Evitar o pecado","Ceder","Ignorar"],0],
+["O que significa confiar em Deus?", ["Aceitar Seus caminhos","Ignorar","Só palavras"],0],
+["O vídeo mostra que bondade traz:", ["Alegria","Problemas","Indiferença"],0]
+],
+t12:[
+["O que Salmo 119:105 ensina?", ["Lâmpada para nossos pés","Nada","Só palavras"],0],
+["Segundo a lição 12, oração é:", ["Falar com Deus","Ignorar","Só palavras"],0],
+["O vídeo mostra que gratidão é:", ["Fundamental","Desnecessária","Confusão"],0],
+["Como a Bíblia ensina a viver?", ["Seguindo a vontade de Deus","Ignorando","Só palavras"],0],
+["Quem é nosso exemplo perfeito?", ["Jesus","Ninguém","Todos"],0],
+["O que significa humildade?", ["Servir aos outros","Ser arrogante","Ignorar"],0],
+["O vídeo ensina que paciência ajuda a:", ["Ter paz","Confusão","Problemas"],0],
+["O que a Bíblia ensina sobre generosidade?", ["Ajudar e compartilhar","Guardar tudo","Ignorar"],0],
+["Segundo 1 Pedro 5:7, devemos:", ["Lançar sobre Deus nossas ansiedades","Guardar","Ignorar"],0],
+["O vídeo mostra que aprender com erros é:", ["Crescer espiritualmente","Fracasso","Indiferença"],0]
+]
+};
 
-// QUIZ
-let atual=0,acertos=0,lista=[],temaAtual="";
-window.start = t=>{
-  temaAtual = t;
-  lista = temas[t]||temas.t1;
-  atual=0; acertos=0;
-  menu.style.display="none";
-  quiz.style.display="block";
-  load();
-}
-function load(){
-  let q=lista[atual];
-  qEl.innerText=q[0];
-  let html="";
-  q[1].forEach((op,i)=>{ html+=`<button onclick="resp(${i},this)">${op}</button>`; });
-  opts.innerHTML = html;
-  document.getElementById("bar").style.width = ((atual/lista.length)*100) + "%";
-}
-window.resp = (i,btn)=>{
-  let certo = lista[atual][2];
-  if(i===certo){ acertos++; btn.classList.add("correct"); tocar("acerto"); }
-  else { btn.classList.add("wrong"); tocar("erro"); }
-  setTimeout(()=>{
-    atual++;
-    if(atual<lista.length) load();
-    else fim();
-  },800);
-}
-async function fim(){
-  let pct = Math.round((acertos/lista.length)*100);
-  await salvarProgresso(temaAtual,pct);
-  await addDoc(collection(db,"ranking"),{nome:jogador,tema:temaAtual,pontos:pct,data:new Date().toLocaleString()});
-  quiz.innerHTML = `<h2>${pct}%</h2><button onclick="location.reload()">Menu</button>`;
-}
+// Variáveis quiz
+let atual=0, acertos=0, lista=[], temaAtual="";
 
-// RANKING
-window.ranking = async ()=>{
-  let snap = await getDocs(collection(db,"progresso"));
-  let listaRanking = [];
-  snap.forEach(doc=>{
-    let d=doc.data();
-    let soma=0, cont=0;
-    for(let i=1;i<=12;i++){ if(d["t"+i]){ soma+=d["t"+i]; cont++; } }
-    let media = cont?Math.round(soma/cont):0;
-    listaRanking.push({nome:doc.id,media});
-  });
-  listaRanking.sort((a,b)=>b.media-a.media);
-  let html="<h2>🏆 Ranking Geral</h2>";
-  listaRanking.forEach(r=>{ html+=`<p>${r.nome} - ${r.media}%</p>`; });
-  html+="<button onclick='location.reload()'>Voltar</button>";
-  menu.innerHTML=html;
-}
-
-// ADMIN
-let clicks=0;
-window.adminClick=()=>{ clicks++; if(clicks>=5) abrirAdmin(); }
-async function abrirAdmin(){
-  menu.style.display="none";
-  adminPanel.style.display="block";
-  let snap = await getDocs(collection(db,"progresso"));
-  let html="";
-  snap.forEach(doc=>{ html+=`<button onclick="verUsuario('${doc.id}')">${doc.id}</button>`; });
-  dados.innerHTML=html;
-}
-window.verUsuario = async(user)=>{
-  let ref = doc(db,"progresso",user);
-  let snap = await getDoc(ref);
-  let d = snap.data();
-  let labels=[], valores=[];
-  for(let i=1;i<=12;i++){ labels.push("L"+i); valores.push(d["t"+i]||0); }
-  if(window.graficoObj) window.graficoObj.destroy();
-  window.graficoObj = new Chart(document.getElementById("grafico"),{
-    type:'bar',
-    data:{ labels, datasets:[{label:user,data:valores}] }
-  });
-  dados.innerHTML+=`<br><button onclick="liberar('${user}')">🔓 Liberar tudo</button>`;
-}
-window.liberar = async(user)=>{
-  let ref = doc(db,"progresso",user);
-  let dados={};
-  for(let i=1;i<=12;i++){ dados["t"+i]=100; }
-  await setDoc(ref,dados);
-  alert("Liberado!");
-}
-
-</script>
-</body>
-</html>
+// Funções Firestore
+async function getProgresso(){let ref=doc(db,"progresso",jogador);let snap=await getDoc(ref);return snap.exists()?snap.data():{}}
