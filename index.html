@@ -1,396 +1,242 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Bíblico PRO</title>
-<style>
-body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; }
-.correct { background:green; }
-.wrong { background:red; }
-.locked { background:#444; color:#888; }
-.progress { width:90%; max-width:400px; height:10px; background:#333; margin:auto; }
-.progress-bar { height:10px; background:lime; width:0%; }
-input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Bíblico PRO</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align:center; background:#111; color:#fff; margin:0; padding:20px; }
+        button { width:90%; max-width:400px; margin:8px; padding:15px; border:none; border-radius:10px; cursor:pointer; font-size:16px; font-weight:bold; transition: 0.3s; }
+        .opt-btn { background: #333; color: white; border: 1px solid #444; }
+        .opt-btn:hover { background: #444; }
+        .correct { background: green !important; color: white; }
+        .wrong { background: red !important; color: white; }
+        .progress { width:90%; max-width:400px; height:10px; background:#333; margin:20px auto; border-radius:5px; overflow:hidden;}
+        .progress-bar { height:10px; background:lime; width:0%; transition: 0.4s;}
+        input { padding:15px; border-radius:8px; border:none; width:80%; max-width:370px; margin:10px; font-size:16px; }
+        #f { font-size: 1.3em; margin: 15px; min-height: 1.5em; }
+        .tema-btn { background: #2196F3; color: white; }
+    </style>
 </head>
 <body>
 
-<h1 onclick="adminClick()">📖 Quiz Bíblico PRO</h1>
+<h1 onclick="adminClick()" style="cursor:pointer">📖 Quiz Bíblico PRO</h1>
 
 <div id="loginBox">
-<input id="nome" placeholder="Digite seu nome"><br>
-<button onclick="login()">Iniciar</button>
+    <p>Bem-vindo! Digite seu nome para começar:</p>
+    <input id="nomeInput" placeholder="Seu nome aqui..."><br>
+    <button onclick="login()" style="background: lime; color: #000;">ENTRAR</button>
 </div>
 
 <div id="menu" style="display:none;">
-<p id="userText"></p>
-<button onclick="sair()">Sair</button>
-<div id="botoes"></div>
-<button onclick="ranking()">Ranking</button>
+    <p>Olá, <span id="userText" style="color: lime; font-weight: bold;"></span>!</p>
+    <div id="botoesTemas"></div>
+    <button onclick="ranking()" style="background: orange;">🏆 Ver Ranking</button>
+    <button onclick="sair()" style="background: #555;">Sair</button>
 </div>
 
 <div id="quiz" style="display:none;">
-<div class="progress"><div id="bar" class="progress-bar"></div></div>
-<h2 id="q"></h2>
-<div id="opts"></div>
-<p id="f"></p>
-<button onclick="voltarMenu()" id="btnVoltar" style="display:none;">Voltar ao Menu</button>
+    <div class="progress"><div id="bar" class="progress-bar"></div></div>
+    <h2 id="perguntaTexto"></h2>
+    <div id="opcoesDiv"></div>
+    <p id="f"></p>
+    <button onclick="voltarMenu()" id="btnVoltar" style="display:none; background: #444;">Voltar ao Menu</button>
 </div>
 
-<div id="adminPanel" style="display:none;">
-<h2>📊 ADMIN</h2>
-<div id="dados"></div>
-<button onclick="location.reload()">Voltar</button>
+<div id="adminPanel" style="display:none; background: #222; padding: 20px; border-radius: 10px;">
+    <h2>📊 PAINEL ADMIN</h2>
+    <div id="dadosAdmin"></div>
+    <button onclick="location.reload()" style="background: #444;">Fechar</button>
 </div>
 
-<audio id="somAcerto" src="Aplauso.mp3"></audio>
-<audio id="somErro" src="Vaia.mp3"></audio>
+<audio id="somAcerto" src="https://google.com"></audio>
+<audio id="somErro" src="https://google.com"></audio>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://gstatic.com";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, doc, deleteDoc } from "https://gstatic.com";
 
 const firebaseConfig = {
-apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
-authDomain: "quiz-biblico-e1362.firebaseapp.com",
-projectId: "quiz-biblico-e1362"
+    apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
+    authDomain: "://firebaseapp.com",
+    projectId: "quiz-biblico-e1362"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// VARIÁVEIS
-let jogador="";
-let atual=0, acertos=0, lista=[], temaAtual="";
-let ok=["🔥 Boa!","👏 Top!","😎 Mandou bem!","😂 Acertei mesmo?","💪 Show!"];
-let no=["💀 Errou!","🙈 Quase lá!","😂 Ops!","😅 Errou feio!","😬 Tente de novo!"];
+// VARIÁVEIS DE CONTROLE
+let jogador = "";
+let perguntaAtual = 0;
+let totalAcertos = 0;
+let perguntasFiltradas = [];
+let cliquesAdmin = 0;
 
-// LOGIN
-window.login=()=>{
-jogador=nome.value.trim();
-if(!jogador){alert("Digite seu nome!"); return;}
-loginBox.style.display="none";
-menu.style.display="block";
-userText.innerText=jogador;
-gerarBotoes();
-}
+const frasesOk = ["🔥 Boa!", "👏 Top!", "😎 Mandou bem!", "💪 Show!"];
+const frasesNo = ["💀 Errou!", "🙈 Quase lá!", "😂 Ops!", "😬 Tente de novo!"];
 
-// SAIR
-window.sair=()=>{
-location.reload();
-}
-
-// VOLTAR AO MENU
-window.voltarMenu=()=>{
-quiz.style.display="none";
-menu.style.display="block";
-}
-
-// TOCAR SOM
-function tocar(t){
-let a=document.getElementById(t==="acerto"?"somAcerto":"somErro");
-a.currentTime=0;
-a.play().catch(()=>{});
-}
-
-// TEMAS E PERGUNTAS
-let temas={
-t1:[
-["Segundo João 17:3, o que leva à vida eterna?",["Conhecer a Deus","Dinheiro","Fama"],0],
-["Salmos 83:18 ensina?",["Jeová é o nome de Deus","Deus não tem nome","Vários deuses"],0],
-["Quem criou tudo?",["Deus","Homem","Natureza"],0],
-["Conhecer a Deus traz?",["Vida eterna","Nada","Problemas"],0],
-["A Bíblia traz?",["Esperança","Confusão","Medo"],0],
-["No vídeo, o que mais importa?",["Conhecer a Deus","Dinheiro","Fama"],0],
-["Qual o nome de Deus?",["Jeová","Jesus","Maria"],0],
-["Deus quer que façamos?",["Nos aproximar","Ignorar","Esquecer"],0],
-["Conhecer Deus envolve?",["Aprender sobre Ele","Nada","Ignorar"],0],
-["Resultado de conhecer Deus?",["Vida eterna","Nada","Problemas"],0]
-],
-t2:[
-["A Bíblia é?",["Palavra de Deus","Livro comum","História"],0],
-["Provérbios 3:5 ensina?",["Confiar em Deus","Confiar em si","Nos outros"],0],
-["Bíblia ajuda?",["Viver melhor","Confundir","Errar"],0],
-["Devemos ler?",["Sim","Não","Às vezes"],0],
-["Ensina o quê?",["Caminho certo","Nada","Confusão"],0],
-["No vídeo, Bíblia é comparada a?",["Manual","Romance","Revista"],0],
-["Deus fala por meio de?",["Bíblia","Internet","Amigos"],0],
-["Seguir Bíblia traz?",["Benefícios","Problemas","Nada"],0],
-["Bíblia contém?",["Verdade","Mentira","Nada"],0],
-["Devemos confiar na Bíblia?",["Sim","Não","Talvez"],0]
-],
-t3:[
-["Deus quer que sejamos?",["Felizes","Tristes","Nada"],0],
-["Amizade com Deus traz?",["Alegria","Problemas","Nada"],0],
-["Devemos fazer?",["O bem","O mal","Nada"],0],
-["Deus se importa?",["Sim","Não","Nunca"],0],
-["Vida é?",["Presente de Deus","Acaso","Nada"],0],
-["No vídeo, amizade com Deus traz?",["Paz","Tristeza","Nada"],0],
-["Deus cuida?",["Sim","Não","Nunca"],0],
-["Ele quer?",["Nos ajudar","Nos ignorar","Nada"],0],
-["Seguir Deus traz?",["Alegria","Problema","Nada"],0],
-["Amizade com Deus exige?",["Aproximação","Distância","Nada"],0]
-],
-// Continue com t4 até t12 seguindo o mesmo modelo...
-};
-t4:[
-["Orar é?",["Falar com Deus","Pensar","Nada"],0],
-["Deus ouve oração?",["Sim","Não","Às vezes"],0],
-["Quando orar?",["Sempre","Nunca","Só igreja"],0],
-["Devemos agradecer?",["Sim","Não","Talvez"],0],
-["Deus responde?",["Sim","Não","Nunca"],0],
-["No vídeo, oração é?",["Comunicação","Nada","Ritual"],0],
-["Orar ajuda?",["Sim","Não","Nunca"],0],
-["Deus se importa com oração?",["Sim","Não","Talvez"],0],
-["Podemos pedir ajuda?",["Sim","Não","Nunca"],0],
-["Orar traz?",["Paz","Medo","Nada"],0]
-],
-t5:[
-["Devemos amar?",["Próximo","Só nós","Ninguém"],0],
-["Perdoar é?",["Certo","Errado","Opcional"],0],
-["Ódio é?",["Errado","Normal","Certo"],0],
-["Deus ama?",["Sim","Não","Às vezes"],0],
-["Amor mostra?",["Bondade","Raiva","Nada"],0],
-["No vídeo, amar inclui?",["Perdoar","Ignorar","Guardar raiva"],0],
-["Devemos tratar bem?",["Sim","Não","Nunca"],0],
-["Deus quer amor?",["Sim","Não","Talvez"],0],
-["Amor traz?",["Paz","Problemas","Nada"],0],
-["Amar é importante?",["Sim","Não","Talvez"],0]
-],
-t6:[
-["Reino de Deus é?",["Governo","Lugar","Pessoa"],0],
-["Quem é o Rei?",["Jesus","Pedro","Moisés"],0],
-["Reino trará?",["Paz","Guerra","Nada"],0],
-["Vai governar?",["Terra","Só céu","Nada"],0],
-["Reino é importante?",["Sim","Não","Talvez"],0],
-["No vídeo, Reino faz?",["Melhorar tudo","Nada","Destruir"],0],
-["Deus governa?",["Sim","Não","Nunca"],0],
-["Reino trará justiça?",["Sim","Não","Talvez"],0],
-["Devemos apoiar?",["Sim","Não","Talvez"],0],
-["Reino é solução?",["Sim","Não","Talvez"],0]
-],
-t7:[
-["Terra será?",["Paraíso","Destruída","Nada"],0],
-["Sofrimento vai?",["Acabar","Continuar","Aumentar"],0],
-["Doença?",["Sumirá","Piorará","Igual"],0],
-["Morte?",["Não existirá","Igual","Mais"],0],
-["Vida será?",["Feliz","Triste","Nada"],0],
-["No vídeo, haverá dor?",["Não","Sim","Talvez"],0],
-["Deus promete?",["Melhor futuro","Nada","Pior"],0],
-["Paraíso é?",["Real","Mentira","Nada"],0],
-["Terra será perfeita?",["Sim","Não","Talvez"],0],
-["Deus fará isso?",["Sim","Não","Nunca"],0]
-],
-t8:[
-["Deus quer?",["Obediência","Rebeldia","Nada"],0],
-["Mandamentos são?",["Para o bem","Ruins","Nada"],0],
-["Seguir Bíblia?",["Importante","Não","Opcional"],0],
-["Obedecer traz?",["Vida","Nada","Problema"],0],
-["Desobedecer traz?",["Problemas","Nada","Vida"],0],
-["No vídeo, obedecer traz?",["Felicidade","Tristeza","Nada"],0],
-["Deus ensina?",["Sim","Não","Nunca"],0],
-["Devemos seguir?",["Sim","Não","Talvez"],0],
-["Obediência agrada?",["Deus","Homem","Ninguém"],0],
-["Obedecer é bom?",["Sim","Não","Talvez"],0]
-],
-t9:[
-["Satanás é?",["Inimigo","Amigo","Nada"],0],
-["Ele causa?",["Mal","Bem","Nada"],0],
-["Devemos resistir?",["Sim","Não","Talvez"],0],
-["Deus ajuda?",["Sim","Não","Nunca"],0],
-["Satanás quer?",["Enganar","Ajudar","Nada"],0],
-["No vídeo, ele faz?",["Engana","Ajuda","Nada"],0],
-["Devemos confiar em Deus?",["Sim","Não","Talvez"],0],
-["Deus protege?",["Sim","Não","Nunca"],0],
-["Mal vem de?",["Satanás","Deus","Nada"],0],
-["Devemos ficar atentos?",["Sim","Não","Talvez"],0]
-],
-t10:[
-["Vida eterna é?",["Possível","Impossível","Mentira"],0],
-["Deus promete?",["Cumpre","Esquece","Não liga"],0],
-["Futuro terá?",["Paz","Caos","Nada"],0],
-["Devemos confiar?",["Sempre","Nunca","Às vezes"],0],
-["Promessas de Deus são?",["Seguras","Falsas","Nada"],0],
-["No vídeo, Deus cumpre?",["Sim","Não","Talvez"],0],
-["Esperança é?",["Real","Falsa","Nada"],0],
-["Deus é fiel?",["Sim","Não","Talvez"],0],
-["Vida eterna depende?",["Deus","Sorte","Nada"],0],
-["Devemos esperar?",["Sim","Não","Talvez"],0]
-],
-t11:[
-["Deus quer que sejamos?",["Felizes","Tristes","Nada"],0],
-["Felicidade vem de?",["Deus","Dinheiro","Fama"],0],
-["Devemos seguir?",["Bíblia","Mundo","Nada"],0],
-["Isso traz?",["Vida","Nada","Problemas"],0],
-["Deus guia?",["Sim","Não","Nunca"],0],
-["No vídeo, felicidade vem?",["Deus","Coisas","Nada"],0],
-["Seguir Deus traz?",["Paz","Confusão","Nada"],0],
-["Deus ajuda?",["Sim","Não","Nunca"],0],
-["Devemos confiar?",["Sim","Não","Talvez"],0],
-["Isso traz alegria?",["Sim","Não","Talvez"],0]
-],
-t12:[
-["O que escolher?",["Vida eterna","Vida passageira","Nada"],0],
-["Qual decisão tomar?",["Seguir Deus","Ignorar","Duvidar"],0],
-["Deus recompensa?",["Sim","Não","Talvez"],0],
-["Devemos fazer?",["Escolher o bem","Nada","Qualquer"],0],
-["Decisão é importante?",["Sim","Não","Talvez"],0],
-["No vídeo, escolha é?",["Importante","Nada","Errada"],0],
-["Deus quer decisão?",["Sim","Não","Nunca"],0],
-["Devemos agir?",["Sim","Não","Talvez"],0],
-["Escolher Deus traz?",["Vida","Nada","Problema"],0],
-["Decisão define?",["Futuro","Nada","Pouco"],0]
-]
+const temas = {
+    t1: { nome: "Conhecer a Deus", perguntas: [["Segundo João 17:3, o que leva à vida eterna?",["Conhecer a Deus","Dinheiro","Fama"],0],["Qual o nome de Deus?",["Jeová","Jesus","Maria"],0]] },
+    t2: { nome: "A Bíblia", perguntas: [["A Bíblia é?",["Palavra de Deus","Livro comum","História"],0],["Provérbios 3:5 ensina?",["Confiar em Deus","Confiar em si","Nos outros"],0]] },
+    t3: { nome: "Amizade com Deus", perguntas: [["Deus quer que sejamos?",["Felizes","Tristes","Nada"],0],["Amizade com Deus traz?",["Alegria","Problemas","Nada"],0]] },
+    t4: { nome: "Oração", perguntas: [["Orar é?",["Falar com Deus","Pensar","Nada"],0],["Deus ouve oração?",["Sim","Não","Às vezes"],0]] },
+    t5: { nome: "Amor e Perdão", perguntas: [["Devemos amar?",["Próximo","Só nós","Ninguém"],0],["Perdoar é?",["Certo","Errado","Opcional"],0]] },
+    t6: { nome: "Reino de Deus", perguntas: [["Reino de Deus é?",["Governo","Lugar","Pessoa"],0],["Quem é o Rei?",["Jesus","Pedro","Moisés"],0]] },
+    t7: { nome: "Futuro", perguntas: [["Terra será?",["Paraíso","Destruída","Nada"],0],["Sofrimento vai?",["Acabar","Continuar","Aumentar"],0]] },
+    t8: { nome: "Obediência", perguntas: [["Deus quer?",["Obediência","Rebeldia","Nada"],0],["Obedecer traz?",["Vida","Nada","Problema"],0]] },
+    t9: { nome: "Inimigo", perguntas: [["Satanás é?",["Inimigo","Amigo","Nada"],0],["Ele causa?",["Mal","Bem","Nada"],0]] },
+    t10: { nome: "Promessas", perguntas: [["Vida eterna é?",["Possível","Impossível","Mentira"],0],["Deus é fiel?",["Sim","Não","Talvez"],0]] },
+    t11: { nome: "Felicidade", perguntas: [["Deus quer que sejamos?",["Felizes","Tristes","Nada"],0]] }
 };
 
-// PROGRESSO
-async function getProgresso(){
-let ref=doc(db,"progresso",jogador);
-let snap=await getDoc(ref);
-return snap.exists()?snap.data():{};
+// --- FUNÇÕES GLOBAIS ---
+window.login = () => {
+    jogador = document.getElementById("nomeInput").value.trim();
+    if(!jogador) { alert("Digite seu nome!"); return; }
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("menu").style.display = "block";
+    document.getElementById("userText").innerText = jogador;
+    window.gerarBotoesTemas();
+};
+
+window.gerarBotoesTemas = () => {
+    const container = document.getElementById("botoesTemas");
+    container.innerHTML = "";
+    for (let id in temas) {
+        let btn = document.createElement("button");
+        btn.innerText = temas[id].nome;
+        btn.className = "tema-btn";
+        btn.onclick = () => iniciarJogo(id);
+        container.appendChild(btn);
+    }
+};
+
+function iniciarJogo(idTema) {
+    perguntasFiltradas = temas[idTema].perguntas;
+    perguntaAtual = 0;
+    totalAcertos = 0;
+    document.getElementById("menu").style.display = "none";
+    document.getElementById("quiz").style.display = "block";
+    document.getElementById("btnVoltar").style.display = "none";
+    mostrarPergunta();
 }
 
-async function salvarProgresso(tema,pct){
-let ref=doc(db,"progresso",jogador);
-let dados=await getProgresso();
-dados[tema]=pct;
-await setDoc(ref,dados);
+function mostrarPergunta() {
+    document.getElementById("f").innerText = "";
+    if (perguntaAtual >= perguntasFiltradas.length) {
+        finalizar();
+        return;
+    }
+    
+    let p = perguntasFiltradas[perguntaAtual];
+    document.getElementById("perguntaTexto").innerText = p[0];
+    document.getElementById("bar").style.width = ((perguntaAtual / perguntasFiltradas.length) * 100) + "%";
+    
+    const opcoesDiv = document.getElementById("opcoesDiv");
+    opcoesDiv.innerHTML = "";
+    
+    p[1].forEach((txt, i) => {
+        let btn = document.createElement("button");
+        btn.innerText = txt;
+        btn.className = "opt-btn";
+        btn.onclick = () => verificarResposta(i, p[2]);
+        opcoesDiv.appendChild(btn);
+    });
 }
 
-// BOTÕES
-async function gerarBotoes(){
-let prog=await getProgresso();
-let html="";
-for(let i=1;i<=12;i++){
-let t="t"+i;
-let prev=prog["t"+(i-1)]||0;
-let atualScore=prog[t]||0;
-if(i>1 && prev<80){
-html+=`<button class="locked">🔒 Lição ${i}</button>`;
-}else if(atualScore>=80){
-html+=`<button class="locked">✅ Lição ${i}</button>`;
-}else{
-html+=`<button onclick="start('${t}')">📚 Lição ${i}</button>`;
-}
-}
-botoes.innerHTML=html;
+function verificarResposta(escolha, correta) {
+    const botoes = document.querySelectorAll(".opt-btn");
+    botoes.forEach(b => b.disabled = true);
+
+    if (escolha === correta) {
+        totalAcertos++;
+        botoes[escolha].classList.add("correct");
+        document.getElementById("f").innerText = frasesOk[Math.floor(Math.random() * frasesOk.length)];
+        tocar("somAcerto");
+    } else {
+        botoes[escolha].classList.add("wrong");
+        botoes[correta].classList.add("correct");
+        document.getElementById("f").innerText = frasesNo[Math.floor(Math.random() * frasesNo.length)];
+        tocar("somErro");
+    }
+
+    setTimeout(() => {
+        perguntaAtual++;
+        mostrarPergunta();
+    }, 1500);
 }
 
-// START
-window.start=t=>{
-temaAtual=t;
-lista=temas[t]||temas.t1;
-atual=0;
-acertos=0;
-menu.style.display="none";
-quiz.style.display="block";
-btnVoltar.style.display="none";
-load();
+async function finalizar() {
+    document.getElementById("perguntaTexto").innerText = `Fim! Você acertou ${totalAcertos} de ${perguntasFiltradas.length}`;
+    document.getElementById("opcoesDiv").innerHTML = "";
+    document.getElementById("bar").style.width = "100%";
+    document.getElementById("btnVoltar").style.display = "block";
+
+    try {
+        await addDoc(collection(db, "ranking"), {
+            nome: jogador,
+            pontos: totalAcertos,
+            data: new Date()
+        });
+    } catch (e) { console.error("Erro ao salvar:", e); }
 }
 
-// LOAD
-function load(){
-let q=lista[atual];
-qEl.innerText=q[0];
-bar.style.width=((atual/lista.length)*100)+"%";
-let html="";
-q[1].forEach((op,i)=>{
-html+=`<button onclick="resp(${i},this)">${op}</button>`;
-});
-opts.innerHTML=html;
+window.ranking = async () => {
+    const q = query(collection(db, "ranking"), orderBy("pontos", "desc"), limit(10));
+    try {
+        const snap = await getDocs(q);
+        let lista = "🏆 TOP 10 RANKING:\n\n";
+        snap.forEach(d => {
+            lista += `${d.data().nome} - ${d.data().pontos} pontos\n`;
+        });
+        alert(lista);
+    } catch(e) { alert("Erro ao carregar ranking!"); }
+};
+
+window.adminClick = () => {
+    cliquesAdmin++;
+    if(cliquesAdmin >= 5) {
+        abrirAdmin();
+        cliquesAdmin = 0;
+    }
+};
+
+async function abrirAdmin() {
+    document.getElementById("menu").style.display = "none";
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("adminPanel").style.display = "block";
+    const box = document.getElementById("dadosAdmin");
+    box.innerHTML = "Carregando...";
+    
+    const snap = await getDocs(collection(db, "ranking"));
+    box.innerHTML = "";
+    snap.forEach(docSnap => {
+        const d = docSnap.data();
+        box.innerHTML += `<div style="border-bottom:1px solid #444; padding:10px;">
+            ${d.nome} - ${d.pontos} pts 
+            <button onclick="resetar('${docSnap.id}')" style="width:60px; background:red; padding:5px; font-size:10px;">X</button>
+        </div>`;
+    });
 }
 
-// RESPONDER
-window.resp=(i,btn)=>{
-let certo=lista[atual][2];
-if(i===certo){
-acertos++;
-btn.classList.add("correct");
-f.innerText=ok[Math.floor(Math.random()*ok.length)];
-tocar("acerto");
-}else{
-btn.classList.add("wrong");
-f.innerText=no[Math.floor(Math.random()*no.length)];
-tocar("erro");
-}
-setTimeout(()=>{
-f.innerText="";
-atual++;
-if(atual<lista.length) load();
-else fim();
-},1000);
-}
+window.resetar = async (id) => {
+    if(!confirm("Deletar este registro?")) return;
+    await deleteDoc(doc(db, "ranking", id));
+    abrirAdmin();
+};
 
-// FIM
-async function fim(){
-let pct=Math.round((acertos/lista.length)*100);
-await salvarProgresso(temaAtual,pct);
-await addDoc(collection(db,"ranking"),{
-nome:jogador,
-tema:temaAtual,
-pontos:pct,
-data:new Date().toLocaleString()
-});
-quiz.innerHTML=`<h2>${pct}%</h2><button onclick="location.reload()">Menu</button>`;
-btnVoltar.style.display="block";
-}
+window.voltarMenu = () => {
+    document.getElementById("quiz").style.display = "none";
+    document.getElementById("menu").style.display = "block";
+};
 
-// RANKING
-window.ranking=async()=>{
-let snap=await getDocs(collection(db,"ranking"));
-let html="<h2>🏆 Ranking</h2>";
-snap.forEach(doc=>{
-let d=doc.data();
-html+=`<p>${d.nome} - ${d.tema} - ${d.pontos}%</p>`;
-});
-html+="<button onclick='location.reload()'>Voltar</button>";
-menu.innerHTML=html;
-}
+window.sair = () => location.reload();
 
-// ADMIN
-let clicks=0;
-window.adminClick=()=>{clicks++; if(clicks>=5) abrirAdmin();}
-
-async function abrirAdmin(){
-if(jogador!=="Gilberto Rocha"){alert("Acesso negado!"); return;}
-menu.style.display="none";
-adminPanel.style.display="block";
-let snap=await getDocs(collection(db,"progresso"));
-let html=`<h3>🔍 Buscar usuário</h3>
-<input id="busca" oninput="filtrar()" placeholder="Digite nome do jogador">
-<div id="lista"></div>`;
-dados.innerHTML=html;
-let listaHTML="";
-snap.forEach(doc=>{
-let user=doc.id;
-let d=doc.data();
-let prog="";
-for(let i=1;i<=12;i++){
-prog+=`L${i}:${d["t"+i]||0}% | `;
+function tocar(id) {
+    const a = document.getElementById(id);
+    a.currentTime = 0;
+    a.play().catch(()=>{});
 }
-listaHTML+=`<div style="border:1px solid #555;margin:10px;padding:10px;">
-<b>${user}</b><br>${prog}<br>
-<button onclick="resetar('${user}')">🗑 Resetar</button></div>`;
-});
-document.getElementById("lista").innerHTML=listaHTML;
-}
-
-window.filtrar=()=>{
-let txt=document.getElementById("busca").value.toLowerCase();
-document.querySelectorAll("#lista div").forEach(d=>{
-d.style.display=d.innerText.toLowerCase().includes(txt)?"block":"none";
-});
-}
-
-window.resetar=async(user)=>{
-if(!confirm("Resetar usuário?")) return;
-await deleteDoc(doc(db,"progresso",user));
-alert("Resetado!");
-abrirAdmin();
-}
-
 </script>
 </body>
-</html>  
+</html>
