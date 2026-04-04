@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Bíblico Teste</title>
+<title>Quiz Bíblico</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -86,7 +86,7 @@ a.currentTime=0;
 a.play().catch(()=>{});
 }
 
-// 🔥 PERGUNTAS DIFÍCEIS
+// 🔥 PERGUNTAS (SEM ERRO)
 let temas = {
 
 t1:[
@@ -100,18 +100,6 @@ t1:[
 ["Como começar a conhecer a Deus?",["Bíblia","Internet","Amigos"],0],
 ["Qual atitude Deus espera?",["Esforço sincero","Curiosidade","Medo"],0],
 ["Por que isso muda a vida?",["Dá sentido","Impõe regras","Nada muda"],0]
-],
-
-t2:[
-["Quem é o autor principal da Bíblia?",["Homens","Deus","Reis"],1],
-["O que significa inspiração bíblica?",["Imaginação","Deus guiou","Cópia"],1],
-["Para que a Bíblia serve?",["Entreter","Ensinar","Confundir"],1]
-],
-
-t3:[
-["O que Deus quer para nós?",["Felicidade","Dinheiro","Fama"],0],
-["O que traz felicidade real?",["Riqueza","Amizade com Deus","Poder"],1],
-["Deus se importa?",["Sim","Não","Pouco"],0]
 ]
 
 };
@@ -151,11 +139,19 @@ html+=`<button onclick="start('${t}')">📚 Lição ${i}</button>`;
 botoes.innerHTML=html;
 }
 
-// QUIZ
+// START (CORRIGIDO)
 window.start=t=>{
 temaAtual=t;
-lista=temas[t]||temas.t1;
-atual=0; acertos=0;
+
+// 🔥 PROTEÇÃO
+if(!temas[t] || temas[t].length===0){
+alert("⚠️ Tema ainda não disponível");
+return;
+}
+
+lista = temas[t];
+atual=0;
+acertos=0;
 
 menu.style.display="none";
 quiz.style.display="block";
@@ -163,6 +159,7 @@ quiz.style.display="block";
 load();
 }
 
+// LOAD
 function load(){
 let q=lista[atual];
 qEl.innerText=q[0];
@@ -174,6 +171,7 @@ html+=`<button onclick="resp(${i})">${op}</button>`;
 opts.innerHTML=html;
 }
 
+// RESP
 window.resp=async(i)=>{
 let certo=lista[atual][2];
 
@@ -249,7 +247,7 @@ dados.innerHTML=html;
 window.ver=async(user)=>{
 let ref=doc(db,"progresso",user);
 let snap=await getDoc(ref);
-let d=snap.data();
+let d=snap.data() || {};
 
 let labels=[],valores=[];
 
