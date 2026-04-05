@@ -74,7 +74,6 @@ const uid = user.user.uid;
 
 let dados = {};
 
-// salvar
 async function salvar(){
   await setDoc(doc(db,"usuarios",uid),dados);
 }
@@ -115,22 +114,46 @@ menu.innerHTML = `
 carregarRanking();
 }
 
-// QUIZ COM MAIS PERGUNTAS
+// PERGUNTAS AVANÇADAS
 let temas = {
+
 t1:[
-["Deus quer que sejamos felizes?",["Sim","Não","Talvez"],0],
-["A Bíblia é inspirada?",["Sim","Não","Talvez"],0],
-["Deus se importa com você?",["Sim","Não","Talvez"],0],
-["A vida tem propósito?",["Sim","Não","Talvez"],0],
-["Podemos confiar na Bíblia?",["Sim","Não","Talvez"],0]
+["Deus quer que todos sejam felizes para sempre, mas por que nem todos são hoje?",
+["Porque Deus não se importa","Porque os humanos escolheram seguir seu próprio caminho","Porque não existe Deus"],1],
+
+["Segundo o ensino bíblico, qual é a principal causa do sofrimento humano?",
+["Falta de tecnologia","Desobediência às orientações de Deus","Destino"],1],
+
+["Se Deus é amor, por que ele permite o sofrimento temporariamente?",
+["Porque ele não pode impedir","Para provar quem é mais forte","Para resolver a questão da soberania de forma definitiva"],2],
+
+["Qual atitude mostra que alguém realmente quer conhecer a Deus?",
+["Ouvir ocasionalmente","Buscar aprender e aplicar","Só acreditar"],1],
+
+["Nos vídeos, qual é o objetivo principal ao estudar a Bíblia?",
+["Ganhar discussões","Conhecer a vontade de Deus e mudar a vida","Decorar"],1],
+
+["Se alguém diz 'eu acredito em Deus', qual o erro?",
+["Nenhum","Falta agir conforme Deus ensina","Acreditar demais"],1],
+
+["Por que confiar só em sentimentos é perigoso?",
+["Sempre estão errados","Podem enganar sem base na verdade","Não existem"],1],
+
+["Qual a diferença entre conhecer sobre Deus e conhecer a Deus?",
+["Nenhuma","Envolve prática e relacionamento","Só muda o nome"],1],
+
+["Nos vídeos, o que acontece ao aplicar princípios bíblicos?",
+["Nada muda","A vida melhora gradualmente","Só piora"],1],
+
+["Se Deus promete futuro melhor, o que ele espera agora?",
+["Esperar parado","Fazer qualquer coisa","Aprender e viver conforme sua vontade"],2]
 ],
+
 t2:[
-["Conhecer Deus exige esforço?",["Sim","Não","Talvez"],0],
-["Só acreditar basta?",["Sim","Não","Talvez"],1],
-["Deus ouve orações?",["Sim","Não","Talvez"],0],
-["Podemos ser amigos de Deus?",["Sim","Não","Talvez"],0],
-["A Bíblia ajuda hoje?",["Sim","Não","Talvez"],0]
+["Conhecer Deus exige esforço?","Sim|Não|Talvez".split("|"),0],
+["Só acreditar basta?","Sim|Não|Talvez".split("|"),1]
 ]
+
 };
 
 let lista=[], atual=0, acertos=0, temaAtual="";
@@ -182,7 +205,6 @@ load();
 let pct = Math.round((acertos/lista.length)*100);
 dados.progresso[temaAtual]=pct;
 
-// nível
 if(dados.xp>=dados.nivel*100){
 dados.xp=0;
 dados.nivel++;
