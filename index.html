@@ -3,23 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teste Clique</title>
+<title>Teste Firebase</title>
 </head>
 
 <body style="text-align:center; background:#111; color:#fff; font-family:Arial;">
 
-<h2>Teste Clique</h2>
+<h2>Teste Firebase</h2>
 
 <input id="nome" placeholder="Digite seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
 
 <div id="msg"></div>
 
-<script>
+<script type="module">
 
-window.entrar = function(){
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-alert("clicou"); // 👈 TESTE PRINCIPAL
+// 🔥 COLE SEU CONFIG REAL AQUI
+const firebaseConfig = {
+  apiKey: "COLE_AQUI",
+  authDomain: "COLE_AQUI",
+  projectId: "COLE_AQUI"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+// login anônimo
+const user = await signInAnonymously(auth);
+const uid = user.user.uid;
+
+window.entrar = async function(){
+
+alert("clicou"); // 👈 ainda mantemos teste
 
 let nome = document.getElementById("nome").value;
 
@@ -28,7 +47,12 @@ alert("Digite nome");
 return;
 }
 
-document.getElementById("msg").innerHTML = "FUNCIONANDO ATÉ AQUI";
+await setDoc(doc(db,"usuarios",uid),{
+nome: nome,
+teste: "ok"
+});
+
+document.getElementById("msg").innerHTML = "SALVO NO FIREBASE ✅";
 
 }
 
