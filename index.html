@@ -46,13 +46,15 @@ const uid = user.user.uid;
 
 let dados = {};
 
-// salvar padrão
+// salvar
 async function salvar(){
   await setDoc(doc(db,"usuarios",uid),dados);
 }
 
 // LOGIN
 window.entrar = async function(){
+
+alert("entrou"); // 👈 teste pra garantir que está rodando
 
 let nome = document.getElementById("nome").value;
 if(!nome) return alert("Digite nome");
@@ -67,6 +69,11 @@ dados = {nome,xp:0,nivel:1,progresso:{}};
 await salvar();
 }
 
+// garante que progresso existe
+if(!dados.progresso){
+dados.progresso = {};
+}
+
 dados.ultimoAcesso = new Date().toISOString();
 await salvar();
 
@@ -74,7 +81,7 @@ menu.innerHTML = `
 <h3>${dados.nome}</h3>
 <p>Nível ${dados.nivel} | XP ${dados.xp}</p>
 <button onclick="start('t1')">Lição 1</button>
-<button onclick="start('t2')" ${dados.progresso.t1>=80?'':'class="locked"'}>Lição 2</button>
+<button onclick="start('t2')" ${(dados.progresso.t1||0)>=80?'':'class="locked"'}>Lição 2</button>
 `;
 
 carregarRanking();
