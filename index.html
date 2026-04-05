@@ -2,78 +2,315 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Quiz Teste</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rumo ao Paraíso em Família</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <style>
-body{background:#111;color:#fff;text-align:center;font-family:Arial}
-button{margin:10px;padding:10px;border-radius:10px}
+body { font-family: Arial; text-align:center; background:#111; color:#fff; }
+button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; font-size:16px;}
+.correct { background:green; }
+.wrong { background:red; }
+.locked { background:#444; color:#888; }
+input { padding:10px; border-radius:8px; border:none; width:80%; }
+#feedback { margin-top:15px; font-size:18px; }
 </style>
 </head>
+
 <body>
 
-<h1>Quiz Bíblico</h1>
+<h1 onclick="adminClick()">📖 Rumo ao Paraíso em Família</h1>
 
-<input id="nome" placeholder="Nome"><br>
+<div id="loginBox">
+<input id="nome" placeholder="Seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
+</div>
 
 <div id="menu" style="display:none;">
-<button onclick="start()">Lição 1</button>
+<p id="userText"></p>
+<button onclick="sair()">Sair</button>
+<div id="botoes"></div>
+<button onclick="ranking()">🏆 Ranking</button>
 </div>
 
 <div id="quiz" style="display:none;">
 <h2 id="q"></h2>
 <div id="opts"></div>
+<p id="feedback"></p>
 </div>
 
-<script>
+<div id="adminPanel" style="display:none;">
+<h2>📊 ADMIN</h2>
+<div id="dados"></div>
+<canvas id="grafico"></canvas>
+<button onclick="location.reload()">Voltar</button>
+</div>
+
+<audio id="somAcerto" src="Aplauso.mp3"></audio>
+<audio id="somErro" src="Vaia.mp3"></audio>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+const firebaseConfig = {
+apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
+authDomain: "quiz-biblico-e1362.firebaseapp.com",
+projectId: "quiz-biblico-e1362"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
 // ELEMENTOS
-const nomeInput = document.getElementById("nome");
-const menu = document.getElementById("menu");
-const quiz = document.getElementById("quiz");
 const qEl = document.getElementById("q");
 const opts = document.getElementById("opts");
+const botoes = document.getElementById("botoes");
+const menu = document.getElementById("menu");
+const quiz = document.getElementById("quiz");
+const loginBox = document.getElementById("loginBox");
+const userText = document.getElementById("userText");
+const adminPanel = document.getElementById("adminPanel");
+const dados = document.getElementById("dados");
+const feedback = document.getElementById("feedback");
 
-// PERGUNTAS
-let perguntas = [
-["Quem criou tudo?",["Deus","Homem","Natureza"],0],
-["O que leva à vida eterna?",["Conhecer a Deus","Dinheiro","Sorte"],0]
-];
+// USER
+let jogador="";
 
-let atual=0;
+window.entrar=()=>{
+let n=document.getElementById("nome").value.trim();
+if(!n) return alert("Digite seu nome");
+jogador=n;
 
-// LOGIN
-function entrar(){
-if(!nomeInput.value) return alert("Digite o nome");
+loginBox.style.display="none";
 menu.style.display="block";
+userText.innerText="👤 "+jogador;
+
+gerarBotoes();
 }
 
-// START
-function start(){
+window.sair=()=>location.reload();
+
+// SOM
+function tocar(tipo){
+let a=document.getElementById(tipo==="acerto"?"somAcerto":"somErro");
+a.currentTime=0;
+a.play().catch(()=>{});
+}
+
+// FRASES
+function frase(acertou){
+let boas=["🔥 Brabo demais!","😎 Mandou bem!","👊 Tá afiado!"];
+let ruins=["💀 Essa doeu...","😬 Quase!","😂 Foi longe hein"];
+return acertou?boas[Math.floor(Math.random()*boas.length)]
+              :ruins[Math.floor(Math.random()*ruins.length)];
+}
+
+// PERGUNTAS
+let temas={
+t1:[
+["Segundo João 17:3, o que significa conhecer a Deus?",["Saber o nome","Relacionamento","Só acreditar"],1],
+["Salmos 83:18 destaca o quê?",["Poder","Nome Jeová","Criação"],1],
+["Vida eterna envolve?",["Tempo longo","Qualidade perfeita","Reencarnação"],1],
+["Conhecer Deus muda a vida por quê?",["Dá sentido","Impõe regras","Nada muda"],0],
+["Como conhecer Deus?",["Bíblia","Internet","Amigos"],0]
+],
+t2:[
+["Quem inspirou a Bíblia?",["Homens","Deus","Reis"],1],
+["Para que serve a Bíblia?",["Ensinar","Entreter","Confundir"],0]
+],
+t3:[
+["Deus quer que sejamos?",["Felizes","Ricos","Famosos"],0],
+["O que traz felicidade?",["Dinheiro","Deus","Poder"],1]
+]
+};
+
+// BLOQUEIO
+async function getProgresso(){
+let ref=doc(db,"progresso",jogador);
+let snap=await getDoc(ref);
+return snap.exists()?snap.data():{};
+}
+
+async function salvarProgresso(tema,pct){
+let ref=doc(db,"progresso",jogador);
+let dados=await getProgresso();
+dados[tema]=pct;
+await setDoc(ref,dados);
+}
+
+// BOTÕES
+async function gerarBotoes(){
+let prog=await getProgresso();
+let html="";
+
+for(let i=1;i<=12;i++){
+let t="t"+i;
+let score=prog[t]||0;
+let prev=prog["t"+(i-1)]||0;
+
+if(score>=80){
+html+=`<button class="locked">✅ Lição ${i}</button>`;
+}
+else if(i>1 && prev<80){
+html+=`<button class="locked">🔒 Lição ${i}</button>`;
+}
+else{
+html+=`<button onclick="start('${t}')">📚 Lição ${i}</button>`;
+}
+}
+
+botoes.innerHTML=html;
+}
+
+// QUIZ
+let atual=0,acertos=0,lista=[],temaAtual="";
+
+window.start=t=>{
+if(!temas[t]){
+alert("⚠️ Em breve");
+return;
+}
+
+temaAtual=t;
+lista=temas[t];
+atual=0;
+acertos=0;
+
 menu.style.display="none";
 quiz.style.display="block";
-atual=0;
+
 load();
 }
 
-// LOAD
 function load(){
-let q = perguntas[atual];
+let q=lista[atual];
 qEl.innerText=q[0];
 
 let html="";
 q[1].forEach((op,i)=>{
-html+=`<button onclick="resp(${i})">${op}</button>`;
+html+=`<button onclick="resp(${i},this)">${op}</button>`;
 });
-
 opts.innerHTML=html;
 }
 
-// RESP
-function resp(i){
-alert("Funcionou 👍");
+window.resp=async(i,btn)=>{
+let certo=lista[atual][2];
+
+if(i===certo){
+acertos++;
+btn.classList.add("correct");
+tocar("acerto");
+feedback.innerText=frase(true);
+}else{
+btn.classList.add("wrong");
+tocar("erro");
+feedback.innerText=frase(false);
+}
+
+setTimeout(async()=>{
+atual++;
+
+if(atual<lista.length){
+feedback.innerText="";
+load();
+}else{
+let pct=Math.round((acertos/lista.length)*100);
+
+await salvarProgresso(temaAtual,pct);
+
+await addDoc(collection(db,"ranking"),{
+nome:jogador,
+pontos:pct
+});
+
+quiz.innerHTML=`<h2>${pct}%</h2><button onclick="location.reload()">Menu</button>`;
+}
+},1000);
+}
+
+// RANKING
+window.ranking=async()=>{
+let snap=await getDocs(collection(db,"progresso"));
+let lista=[];
+
+snap.forEach(doc=>{
+let d=doc.data();
+let soma=0,cont=0;
+
+for(let i=1;i<=12;i++){
+if(d["t"+i]){soma+=d["t"+i];cont++;}
+}
+
+let media=cont?Math.round(soma/cont):0;
+lista.push({nome:doc.id,media});
+});
+
+lista.sort((a,b)=>b.media-a.media);
+
+let html="<h2>🏆 Ranking</h2>";
+lista.forEach(r=>{
+html+=`<p>${r.nome} - ${r.media}%</p>`;
+});
+
+html+="<button onclick='location.reload()'>Voltar</button>";
+menu.innerHTML=html;
+}
+
+// ADMIN
+let clicks=0;
+window.adminClick=()=>{clicks++; if(clicks>=5) abrirAdmin();}
+
+async function abrirAdmin(){
+menu.style.display="none";
+adminPanel.style.display="block";
+
+let snap=await getDocs(collection(db,"progresso"));
+
+let html="";
+snap.forEach(doc=>{
+html+=`<button onclick="ver('${doc.id}')">${doc.id}</button>`;
+});
+
+dados.innerHTML=html;
+}
+
+window.ver=async(user)=>{
+let ref=doc(db,"progresso",user);
+let snap=await getDoc(ref);
+let d=snap.data()||{};
+
+let labels=[],valores=[];
+
+for(let i=1;i<=12;i++){
+labels.push("L"+i);
+valores.push(d["t"+i]||0);
+}
+
+new Chart(document.getElementById("grafico"),{
+type:'bar',
+data:{labels:labels,datasets:[{label:user,data:valores}]}
+});
+
+dados.innerHTML+=`
+<br><button onclick="resetar('${user}')">♻️ Resetar</button>
+<button onclick="remover('${user}')">❌ Remover</button>
+`;
+}
+
+window.resetar=async(user)=>{
+await setDoc(doc(db,"progresso",user),{});
+alert("Resetado");
+}
+
+window.remover=async(user)=>{
+await deleteDoc(doc(db,"progresso",user));
+alert("Removido");
+abrirAdmin();
 }
 
 </script>
-
 </body>
 </html>
