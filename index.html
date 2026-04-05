@@ -3,28 +3,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teste Clique</title>
-
-<style>
-body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-button { margin:5px; padding:12px; border:none; border-radius:8px; width:90%; max-width:400px;}
-</style>
+<title>Teste Firebase</title>
 </head>
 
-<body>
+<body style="text-align:center; background:#111; color:#fff; font-family:Arial;">
 
-<h1>📖 Teste Clique</h1>
+<h2>Teste Firebase</h2>
 
-<input id="nome" placeholder="Seu nome"><br><br>
+<input id="nome" placeholder="Digite seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
 
-<div id="menu"></div>
+<div id="msg"></div>
 
-<script>
+<script type="module">
 
-window.entrar = function(){
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-alert("clicou"); // 👈 TESTE
+// 🔥 COLE SEU CONFIG AQUI
+const firebaseConfig = {
+  apiKey: "COLE_AQUI",
+  authDomain: "COLE_AQUI",
+  projectId: "COLE_AQUI"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const user = await signInAnonymously(auth);
+const uid = user.user.uid;
+
+window.entrar = async function(){
 
 let nome = document.getElementById("nome").value;
 
@@ -33,10 +44,12 @@ alert("Digite seu nome");
 return;
 }
 
-document.getElementById("menu").innerHTML = `
-<h3>Olá ${nome}</h3>
-<button onclick="alert('Quiz funcionando!')">Começar Quiz</button>
-`;
+await setDoc(doc(db,"usuarios",uid),{
+nome: nome,
+teste: "ok"
+});
+
+document.getElementById("msg").innerHTML = "SALVO NO FIREBASE ✅";
 
 }
 
