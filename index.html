@@ -3,25 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teste Firebase</title>
+<title>Rumo ao Paraíso</title>
+
+<style>
+body { font-family: Arial; text-align:center; background:#111; color:#fff; }
+button { margin:5px; padding:12px; border:none; border-radius:8px; width:90%; max-width:400px;}
+.locked{background:#444;color:#888;}
+.correct{background:green;}
+.wrong{background:red;}
+</style>
 </head>
 
-<body style="text-align:center; background:#111; color:#fff; font-family:Arial;">
+<body>
 
-<h2>Teste Firebase</h2>
+<h2>📖 Rumo ao Paraíso</h2>
 
-<input id="nome" placeholder="Digite seu nome"><br><br>
+<input id="nome" placeholder="Seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
 
-<div id="msg"></div>
+<div id="menu"></div>
+<div id="quiz"></div>
+<div id="ranking"></div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// 🔥 SEU CONFIG (JÁ COLOCADO)
 const firebaseConfig = {
   apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
   authDomain: "quiz-biblico-e1362.firebaseapp.com",
@@ -32,28 +41,127 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// login anônimo
 const user = await signInAnonymously(auth);
 const uid = user.user.uid;
 
-window.entrar = async function(){
+let dados = {};
 
-alert("clicou"); // teste
-
-let nome = document.getElementById("nome").value;
-
-if(!nome){
-alert("Digite nome");
-return;
+// salvar padrão
+async function salvar(){
+  await setDoc(doc(db,"usuarios",uid),dados);
 }
 
-await setDoc(doc(db,"usuarios",uid),{
-nome: nome,
-teste: "ok"
+// LOGIN
+window.entrar = async function(){
+
+let nome = document.getElementById("nome").value;
+if(!nome) return alert("Digite nome");
+
+let ref = doc(db,"usuarios",uid);
+let snap = await getDoc(ref);
+
+if(snap.exists()){
+dados = snap.data();
+}else{
+dados = {nome,xp:0,nivel:1,progresso:{}};
+await salvar();
+}
+
+dados.ultimoAcesso = new Date().toISOString();
+await salvar();
+
+menu.innerHTML = `
+<h3>${dados.nome}</h3>
+<p>Nível ${dados.nivel} | XP ${dados.xp}</p>
+<button onclick="start('t1')">Lição 1</button>
+<button onclick="start('t2')" ${dados.progresso.t1>=80?'':'class="locked"'}>Lição 2</button>
+`;
+
+carregarRanking();
+}
+
+// QUIZ
+let temas = {
+t1:[
+["Deus quer que sejamos felizes?",["Sim","Não","Talvez"],0],
+["A Bíblia é inspirada?",["Sim","Não","Talvez"],0]
+],
+t2:[
+["Conhecer Deus exige esforço?",["Sim","Não","Talvez"],0],
+["Só acreditar basta?",["Sim","Não","Talvez"],1]
+]
+};
+
+let lista=[], atual=0, acertos=0, temaAtual="";
+
+window.start = function(t){
+temaAtual = t;
+lista = temas[t];
+atual = 0;
+acertos = 0;
+menu.innerHTML = "";
+load();
+}
+
+function load(){
+let q = lista[atual];
+quiz.innerHTML = `<h3>${q[0]}</h3>`;
+q[1].forEach((op,i)=>{
+quiz.innerHTML += `<button onclick="resp(${i},this)">${op}</button>`;
+});
+}
+
+window.resp = async function(i,btn){
+
+if(i===lista[atual][2]){
+acertos++;
+dados.xp+=10;
+btn.classList.add("correct");
+}else{
+btn.classList.add("wrong");
+}
+
+atual++;
+
+setTimeout(async()=>{
+if(atual<lista.length){
+load();
+}else{
+
+let pct = Math.round((acertos/lista.length)*100);
+dados.progresso[temaAtual]=pct;
+
+// nível
+if(dados.xp>=dados.nivel*100){
+dados.xp=0;
+dados.nivel++;
+}
+
+await salvar();
+
+quiz.innerHTML=`<h2>${pct}%</h2><button onclick="entrar()">Menu</button>`;
+}
+},500);
+
+}
+
+// RANKING
+async function carregarRanking(){
+
+let snap = await getDocs(collection(db,"usuarios"));
+let lista=[];
+
+snap.forEach(d=>lista.push(d.data()));
+
+lista.sort((a,b)=>b.xp-a.xp);
+
+let html="<h3>🏆 Ranking</h3>";
+
+lista.slice(0,5).forEach((u,i)=>{
+html+=`<p>${i+1}º ${u.nome} - ${u.xp} XP</p>`;
 });
 
-document.getElementById("msg").innerHTML = "SALVO NO FIREBASE ✅";
-
+ranking.innerHTML=html;
 }
 
 </script>
