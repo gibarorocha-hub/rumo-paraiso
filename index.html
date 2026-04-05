@@ -6,148 +6,138 @@
     <title>Rumo ao Paraíso</title>
     <style>
         body { font-family: Arial; text-align:center; background:#111; color:#fff; padding: 20px; }
-        button { width: 90%; max-width: 400px; margin: 10px; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        input { padding: 15px; border-radius: 8px; width: 80%; max-width: 370px; margin-bottom: 10px; border: none; font-size: 16px; }
+        button { width: 90%; max-width: 400px; margin: 10px; padding: 15px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; }
+        input { padding: 15px; border-radius: 8px; width: 80%; max-width: 370px; margin-bottom: 10px; border: none; font-size: 16px; color: #000; }
         .locked { background: #444 !important; color: #888; cursor: not-allowed; }
         .quiz-btn { background: #2196F3; color: white; }
         .correct { background: #4CAF50 !important; }
         .wrong { background: #F44336 !important; }
-        hr { border: 0; border-top: 1px solid #333; margin: 20px 0; }
+        #debug { color: red; font-size: 12px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
     <h1>📖 Rumo ao Paraíso</h1>
 
-    <!-- TELA DE LOGIN -->
     <div id="loginSection">
-        <input id="nomeInput" placeholder="Digite seu nome...">
-        <br>
-        <button id="btnEntrar" style="background: #4CAF50; color: white;">Entrar</button>
+        <input id="nomeInput" placeholder="Seu nome...">
+        <button onclick="entrar()" style="background: #4CAF50; color: white;">Entrar</button>
     </div>
 
-    <!-- TELA DE MENU -->
     <div id="menuSection" style="display:none;"></div>
-
-    <!-- TELA DE QUIZ -->
     <div id="quizSection" style="display:none;"></div>
+    
+    <div id="debug"></div>
 
-    <!-- SONS -->
-    <audio id="somAcerto" src="Aplauso.mp3"></audio>
-    <audio id="somErro" src="Vaia.mp3"></audio>
+    <!-- Scripts do Firebase (Versão Compatível) -->
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
 
-<script type="module">
-    import { initializeApp } from "https://gstatic.com";
-    import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://gstatic.com";
-    import { getAuth, signInAnonymously } from "https://gstatic.com";
-
-    const firebaseConfig = {
-        apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
-        authDomain: "://firebaseapp.com",
-        projectId: "quiz-biblico-e1362",
-        storageBucket: "quiz-biblico-e1362.firebasestorage.app",
-        messagingSenderId: "381226315263",
-        appId: "1:381226315263:web:0460f78509890632b5003c"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-
-    let uid, dados = {}, jogadorNome = "";
-
-    // REFERÊNCIAS DOS ELEMENTOS
-    const loginSection = document.getElementById("loginSection");
-    const menuSection = document.getElementById("menuSection");
-    const quizSection = document.getElementById("quizSection");
-    const nomeInput = document.getElementById("nomeInput");
-    const btnEntrar = document.getElementById("btnEntrar");
-
-    // LIÇÕES (12 TEMAS)
-    const temas = {
-        t1:[["João 17:3, o que é essencial?",["Conhecer Deus","Religião","Obras"],0],["Nome de Deus?",["Importante","Não importa","Tradição"],0],["Mudança veio de?",["Aplicar Bíblia","Sorte","Pessoas"],0],["Conhecer exige?",["Esforço","Sorte","Nada"],0],["Só acreditar basta?",["Sim","Não","Depende"],1],["Mudança mostra?",["Conhecimento real","Nada","Religião"],0],["Jesus revelou?",["Deus","Homens","Anjos"],0],["Automático?",["Sim","Não","Talvez"],1],["Aplicar ensinos?",["Aproxima","Nada","Confunde"],0],["Ignorar Deus?",["Problemas","Nada","Sucesso"],0]],
-        t2:[["Bíblia vem de?",["Deus","Homens","Reis"],0],["Serve para?",["Ensinar","Confundir","Entreter"],0],["Prova?",["Profecias","Popularidade","Tradição"],0],["Corrige?",["Sim","Não","Pouco"],0],["Ler?",["Sim","Não","Talvez"],0],["Origem?",["Divina","Humana","Mista"],0],["Erra?",["Não","Sim","Às vezes"],0],["Só líderes entendem?",["Sim","Não","Depende"],1],["Ignorar traz?",["Problemas","Nada","Sucesso"],0],["Ajuda decisões?",["Sim","Não","Pouco"],0]],
-        // ... (as outras lições seguem a mesma lógica)
-    };
-
-    // FUNÇÃO ENTRAR
-    btnEntrar.onclick = async () => {
-        jogadorNome = nomeInput.value.trim();
-        if (!jogadorNome) return alert("Digite seu nome!");
-
-        try {
-            const authRes = await signInAnonymously(auth);
-            uid = authRes.user.uid;
-
-            const ref = doc(db, "progresso", jogadorNome);
-            const snap = await getDoc(ref);
-
-            if (snap.exists()) {
-                dados = snap.data();
-            } else {
-                dados = { nome: jogadorNome, xp: 0 };
-                await setDoc(ref, dados);
-            }
-
-            loginSection.style.display = "none";
-            menuSection.style.display = "block";
-            gerarMenu();
-        } catch (e) {
-            alert("Erro: " + e.message);
-        }
-    };
-
-    window.startQuiz = (t) => {
-        let atual = 0, acertos = 0, lista = temas[t];
-        menuSection.style.display = "none";
-        quizSection.style.display = "block";
-
-        const carregar = () => {
-            let q = lista[atual];
-            let html = `<h2>${q[0]}</h2>`;
-            q[1].forEach((op, i) => {
-                html += `<button onclick="this.parentElement.dataset.resp='${i}'" class="quiz-btn">${op}</button>`;
-            });
-            quizSection.innerHTML = html;
-
-            // Logica de clique nas opções
-            const botoes = quizSection.querySelectorAll('button');
-            botoes.forEach((b, idx) => {
-                b.onclick = () => {
-                    let som = document.getElementById(idx === q[2] ? "somAcerto" : "somErro");
-                    som.play().catch(()=>{});
-                    if(idx === q[2]) acertos++;
-                    b.classList.add(idx === q[2] ? "correct" : "wrong");
-                    
-                    setTimeout(() => {
-                        atual++;
-                        if(atual < lista.length) carregar();
-                        else finalizar(acertos, lista.length, t);
-                    }, 800);
-                };
-            });
+    <script>
+        // CONFIGURAÇÃO DO SEU PROJETO
+        const firebaseConfig = {
+            apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
+            authDomain: "://firebaseapp.com",
+            projectId: "quiz-biblico-e1362",
+            storageBucket: "quiz-biblico-e1362.firebasestorage.app",
+            messagingSenderId: "381226315263",
+            appId: "1:381226315263:web:0460f78509890632b5003c"
         };
-        carregar();
-    };
 
-    async function finalizar(acertos, total, t) {
-        let pct = Math.round((acertos / total) * 100);
-        dados[t] = Math.max(dados[t] || 0, pct);
-        dados.xp = (dados.xp || 0) + (pct >= 80 ? 50 : 10);
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
 
-        await setDoc(doc(db, "progresso", jogadorNome), dados);
-        quizSection.innerHTML = `<h2>Fim! ${pct}%</h2><button onclick="location.reload()">Voltar</button>`;
-    }
+        let jogadorNome = "";
+        let dados = {};
 
-    function gerarMenu() {
-        let html = `<h2>Olá, ${jogadorNome}</h2><p>✨ XP: ${dados.xp || 0}</p><hr>`;
-        for (let i = 1; i <= 12; i++) {
-            let t = "t" + i;
-            let block = i > 1 && (dados["t" + (i - 1)] || 0) < 80;
-            html += `<button onclick="startQuiz('${t}')" class="${block ? 'locked' : 'quiz-btn'}" ${block ? 'disabled' : ''}>Lição ${i} (${dados[t] || 0}%)</button>`;
+        // LIÇÕES
+        const temas = {
+            t1:[["Segundo João 17:3, o que é essencial?",["Conhecer Deus","Religião","Obras"],0],["Nome de Deus?",["Importante","Não importa","Tradição"],0]],
+            t2:[["Bíblia vem de?",["Deus","Homens","Reis"],0],["Serve para?",["Ensinar","Confundir","Entreter"],0]]
+            // Adicione as outras conforme o padrão
+        };
+
+        async function entrar() {
+            const input = document.getElementById("nomeInput");
+            jogadorNome = input.value.trim();
+            const debug = document.getElementById("debug");
+
+            if (!jogadorNome) return alert("Digite seu nome!");
+
+            debug.innerText = "Tentando conectar...";
+
+            try {
+                // Login Anônimo
+                const user = await auth.signInAnonymously();
+                debug.innerText = "Autenticado! Buscando dados...";
+
+                // Busca ou cria o progresso do jogador
+                const docRef = db.collection("progresso").doc(jogadorNome);
+                const docSnap = await docRef.get();
+
+                if (docSnap.exists) {
+                    dados = docSnap.data();
+                } else {
+                    dados = { nome: jogadorNome, xp: 0 };
+                    await docRef.set(dados);
+                }
+
+                document.getElementById("loginSection").style.display = "none";
+                document.getElementById("menuSection").style.display = "block";
+                gerarMenu();
+                debug.innerText = "";
+            } catch (error) {
+                console.error(error);
+                debug.innerText = "ERRO: " + error.message;
+                alert("Erro ao entrar: " + error.message);
+            }
         }
-        menuSection.innerHTML = html;
-    }
-</script>
+
+        function gerarMenu() {
+            let html = `<h2>Olá, ${jogadorNome}</h2><p>✨ XP: ${dados.xp || 0}</p><hr>`;
+            for (let i = 1; i <= 12; i++) {
+                let t = "t" + i;
+                let block = i > 1 && (dados["t" + (i - 1)] || 0) < 80;
+                html += `<button onclick="iniciarQuiz('${t}')" class="${block ? 'locked' : 'quiz-btn'}" ${block ? 'disabled' : ''}>Lição ${i} (${dados[t] || 0}%)</button>`;
+            }
+            document.getElementById("menuSection").innerHTML = html;
+        }
+
+        window.iniciarQuiz = (t) => {
+            let atual = 0;
+            let acertos = 0;
+            let lista = temas[t] || [["Lição em breve!",["Voltar"],0]];
+
+            const quizSec = document.getElementById("quizSection");
+            document.getElementById("menuSection").style.display = "none";
+            quizSec.style.display = "block";
+
+            const carregar = () => {
+                let q = lista[atual];
+                let html = `<h2>${q[0]}</h2>`;
+                q[1].forEach((op, i) => {
+                    html += `<button onclick="checar(${i})" class="quiz-btn">${op}</button>`;
+                });
+                quizSec.innerHTML = html;
+
+                window.checar = async (escolha) => {
+                    if (escolha === q[2]) acertos++;
+                    atual++;
+                    if (atual < lista.length) carregar();
+                    else {
+                        let pct = Math.round((acertos / lista.length) * 100);
+                        dados[t] = Math.max(dados[t] || 0, pct);
+                        dados.xp = (dados.xp || 0) + (pct >= 80 ? 50 : 10);
+                        await db.collection("progresso").doc(jogadorNome).set(dados);
+                        quizSec.innerHTML = `<h2>${pct}%</h2><button onclick="location.reload()">Menu</button>`;
+                    }
+                };
+            };
+            carregar();
+        };
+    </script>
 </body>
 </html>
