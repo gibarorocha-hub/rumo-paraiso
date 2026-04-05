@@ -7,10 +7,35 @@
 
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-button { margin:5px; padding:12px; border:none; border-radius:8px; width:90%; max-width:400px;}
+
+button {
+ margin:5px;
+ padding:12px;
+ border:none;
+ border-radius:8px;
+ width:90%;
+ max-width:400px;
+ font-size:16px;
+}
+
 .locked{background:#444;color:#888;}
 .correct{background:green;}
 .wrong{background:red;}
+
+.progress-bar{
+ width:90%;
+ max-width:400px;
+ background:#333;
+ border-radius:10px;
+ margin:10px auto;
+}
+
+.progress{
+ height:20px;
+ background:limegreen;
+ border-radius:10px;
+ width:0%;
+}
 </style>
 </head>
 
@@ -24,6 +49,9 @@ button { margin:5px; padding:12px; border:none; border-radius:8px; width:90%; ma
 <div id="menu"></div>
 <div id="quiz"></div>
 <div id="ranking"></div>
+
+<audio id="acerto" src="Aplauso.mp3"></audio>
+<audio id="erro" src="Vaia.mp3"></audio>
 
 <script type="module">
 
@@ -54,7 +82,6 @@ async function salvar(){
 // LOGIN
 window.entrar = async function(){
 
-
 let nome = document.getElementById("nome").value;
 if(!nome) return alert("Digite nome");
 
@@ -68,10 +95,7 @@ dados = {nome,xp:0,nivel:1,progresso:{}};
 await salvar();
 }
 
-// garante que progresso existe
-if(!dados.progresso){
-dados.progresso = {};
-}
+if(!dados.progresso) dados.progresso = {};
 
 dados.ultimoAcesso = new Date().toISOString();
 await salvar();
@@ -79,6 +103,11 @@ await salvar();
 menu.innerHTML = `
 <h3>${dados.nome}</h3>
 <p>Nível ${dados.nivel} | XP ${dados.xp}</p>
+
+<div class="progress-bar">
+<div class="progress" style="width:${dados.progresso.t1||0}%"></div>
+</div>
+
 <button onclick="start('t1')">Lição 1</button>
 <button onclick="start('t2')" ${(dados.progresso.t1||0)>=80?'':'class="locked"'}>Lição 2</button>
 `;
@@ -86,15 +115,21 @@ menu.innerHTML = `
 carregarRanking();
 }
 
-// QUIZ
+// QUIZ COM MAIS PERGUNTAS
 let temas = {
 t1:[
 ["Deus quer que sejamos felizes?",["Sim","Não","Talvez"],0],
-["A Bíblia é inspirada?",["Sim","Não","Talvez"],0]
+["A Bíblia é inspirada?",["Sim","Não","Talvez"],0],
+["Deus se importa com você?",["Sim","Não","Talvez"],0],
+["A vida tem propósito?",["Sim","Não","Talvez"],0],
+["Podemos confiar na Bíblia?",["Sim","Não","Talvez"],0]
 ],
 t2:[
 ["Conhecer Deus exige esforço?",["Sim","Não","Talvez"],0],
-["Só acreditar basta?",["Sim","Não","Talvez"],1]
+["Só acreditar basta?",["Sim","Não","Talvez"],1],
+["Deus ouve orações?",["Sim","Não","Talvez"],0],
+["Podemos ser amigos de Deus?",["Sim","Não","Talvez"],0],
+["A Bíblia ajuda hoje?",["Sim","Não","Talvez"],0]
 ]
 };
 
@@ -111,7 +146,12 @@ load();
 
 function load(){
 let q = lista[atual];
-quiz.innerHTML = `<h3>${q[0]}</h3>`;
+
+quiz.innerHTML = `
+<h3>${q[0]}</h3>
+<p>${atual+1}/${lista.length}</p>
+`;
+
 q[1].forEach((op,i)=>{
 quiz.innerHTML += `<button onclick="resp(${i},this)">${op}</button>`;
 });
@@ -119,12 +159,17 @@ quiz.innerHTML += `<button onclick="resp(${i},this)">${op}</button>`;
 
 window.resp = async function(i,btn){
 
+let acerto = document.getElementById("acerto");
+let erro = document.getElementById("erro");
+
 if(i===lista[atual][2]){
 acertos++;
 dados.xp+=10;
 btn.classList.add("correct");
+acerto.play();
 }else{
 btn.classList.add("wrong");
+erro.play();
 }
 
 atual++;
@@ -145,9 +190,12 @@ dados.nivel++;
 
 await salvar();
 
-quiz.innerHTML=`<h2>${pct}%</h2><button onclick="entrar()">Menu</button>`;
+quiz.innerHTML=`
+<h2>${pct}%</h2>
+<button onclick="entrar()">Menu</button>
+`;
 }
-},500);
+},600);
 
 }
 
