@@ -53,6 +53,7 @@ input { padding:10px; border-radius:8px; border:none; width:80%; margin:5px; }
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// 🔥 CONFIG FIREBASE
 const firebaseConfig = {
 apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
 authDomain: "quiz-biblico-e1362.firebaseapp.com",
@@ -61,6 +62,17 @@ projectId: "quiz-biblico-e1362"
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+
+// 🔥 MAPEAMENTO DOS ELEMENTOS (CORREÇÃO PRINCIPAL)
+const qEl = document.getElementById("q");
+const opts = document.getElementById("opts");
+const botoes = document.getElementById("botoes");
+const menu = document.getElementById("menu");
+const quiz = document.getElementById("quiz");
+const loginBox = document.getElementById("loginBox");
+const userText = document.getElementById("userText");
+const adminPanel = document.getElementById("adminPanel");
+const dados = document.getElementById("dados");
 
 // USER
 let jogador="";
@@ -86,9 +98,8 @@ a.currentTime=0;
 a.play().catch(()=>{});
 }
 
-// 🔥 PERGUNTAS (SEM ERRO)
+// 🔥 PERGUNTAS
 let temas = {
-
 t1:[
 ["Segundo João 17:3, o que significa realmente conhecer a Deus?",["Saber o nome dele","Ter amizade e relacionamento com ele","Apenas acreditar que ele existe"],1],
 ["Em Salmos 83:18, qual é o destaque principal sobre Deus?",["Ele é poderoso","Seu nome é Jeová e é o Altíssimo","Ele criou tudo"],1],
@@ -101,7 +112,6 @@ t1:[
 ["Qual atitude Deus espera?",["Esforço sincero","Curiosidade","Medo"],0],
 ["Por que isso muda a vida?",["Dá sentido","Impõe regras","Nada muda"],0]
 ]
-
 };
 
 let atual=0,acertos=0,lista=[],temaAtual="";
@@ -139,11 +149,10 @@ html+=`<button onclick="start('${t}')">📚 Lição ${i}</button>`;
 botoes.innerHTML=html;
 }
 
-// START (CORRIGIDO)
+// START
 window.start=t=>{
 temaAtual=t;
 
-// 🔥 PROTEÇÃO
 if(!temas[t] || temas[t].length===0){
 alert("⚠️ Tema ainda não disponível");
 return;
@@ -247,7 +256,7 @@ dados.innerHTML=html;
 window.ver=async(user)=>{
 let ref=doc(db,"progresso",user);
 let snap=await getDoc(ref);
-let d=snap.data() || {};
+let d=snap.data()||{};
 
 let labels=[],valores=[];
 
