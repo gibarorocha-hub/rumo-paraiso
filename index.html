@@ -3,53 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teste Firebase</title>
+<title>Teste Clique</title>
 </head>
 
 <body style="text-align:center; background:#111; color:#fff; font-family:Arial;">
 
-<h2>Teste Firebase</h2>
+<h2>Teste Clique</h2>
 
 <input id="nome" placeholder="Digite seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
 
 <div id="msg"></div>
 
-<script type="module">
+<script>
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+window.entrar = function(){
 
-// 🔥 COLE SEU CONFIG AQUI
-const firebaseConfig = {
-  apiKey: "COLE_AQUI",
-  authDomain: "COLE_AQUI",
-  projectId: "COLE_AQUI"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-const user = await signInAnonymously(auth);
-const uid = user.user.uid;
-
-window.entrar = async function(){
+alert("clicou"); // 👈 TESTE PRINCIPAL
 
 let nome = document.getElementById("nome").value;
 
 if(!nome){
-alert("Digite seu nome");
+alert("Digite nome");
 return;
 }
 
-await setDoc(doc(db,"usuarios",uid),{
-nome: nome,
-teste: "ok"
-});
-
-document.getElementById("msg").innerHTML = "SALVO NO FIREBASE ✅";
+document.getElementById("msg").innerHTML = "FUNCIONANDO ATÉ AQUI";
 
 }
 
