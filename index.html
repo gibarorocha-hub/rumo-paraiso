@@ -3,36 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rumo ao Paraíso em Família</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<title>Rumo ao Paraíso</title>
 
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px; font-size:16px;}
+button { width:90%; max-width:400px; margin:10px; padding:15px; border:none; border-radius:10px;}
 .correct { background:green; }
 .wrong { background:red; }
-.locked { background:#444; color:#888; }
 input { padding:10px; border-radius:8px; border:none; width:80%; }
-#feedback { margin-top:15px; font-size:18px; }
+#feedback { margin-top:10px; }
 </style>
 </head>
 
 <body>
 
-<h1 onclick="adminClick()">📖 Rumo ao Paraíso em Família</h1>
+<h1>📖 Rumo ao Paraíso</h1>
 
-<div id="loginBox">
 <input id="nome" placeholder="Seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
-</div>
 
-<div id="menu" style="display:none;">
-<p id="userText"></p>
-<button onclick="sair()">Sair</button>
-<div id="botoes"></div>
-<button onclick="ranking()">🏆 Ranking</button>
-</div>
+<div id="menu" style="display:none;"></div>
 
 <div id="quiz" style="display:none;">
 <h2 id="q"></h2>
@@ -40,148 +30,95 @@ input { padding:10px; border-radius:8px; border:none; width:80%; }
 <p id="feedback"></p>
 </div>
 
-<div id="adminPanel" style="display:none;">
-<h2>📊 ADMIN</h2>
-<div id="dados"></div>
-<canvas id="grafico"></canvas>
-<button onclick="location.reload()">Voltar</button>
-</div>
-
-<audio id="somAcerto" src="Aplauso.mp3"></audio>
-<audio id="somErro" src="Vaia.mp3"></audio>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, doc, setDoc, getDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const firebaseConfig = {
-apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
-authDomain: "quiz-biblico-e1362.firebaseapp.com",
-projectId: "quiz-biblico-e1362"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+<script>
 
 // ELEMENTOS
 const qEl = document.getElementById("q");
 const opts = document.getElementById("opts");
-const botoes = document.getElementById("botoes");
 const menu = document.getElementById("menu");
 const quiz = document.getElementById("quiz");
-const loginBox = document.getElementById("loginBox");
-const userText = document.getElementById("userText");
-const adminPanel = document.getElementById("adminPanel");
-const dados = document.getElementById("dados");
 const feedback = document.getElementById("feedback");
 
-// USER
 let jogador="";
 
-window.entrar=()=>{
-let n=document.getElementById("nome").value.trim();
-if(!n) return alert("Digite seu nome");
-jogador=n;
-
-loginBox.style.display="none";
+// LOGIN
+function entrar(){
+jogador=document.getElementById("nome").value;
+if(!jogador) return alert("Digite seu nome");
 menu.style.display="block";
-userText.innerText="👤 "+jogador;
-
-gerarBotoes();
-}
-
-window.sair=()=>location.reload();
-
-// SOM
-function tocar(tipo){
-let a=document.getElementById(tipo==="acerto"?"somAcerto":"somErro");
-a.currentTime=0;
-a.play().catch(()=>{});
+gerarMenu();
 }
 
 // FRASES
-function frase(acertou){
-let boas=["🔥 Brabo demais!","😎 Mandou bem!","👊 Tá afiado!"];
-let ruins=["💀 Essa doeu...","😬 Quase!","😂 Foi longe hein"];
-return acertou?boas[Math.floor(Math.random()*boas.length)]
-              :ruins[Math.floor(Math.random()*ruins.length)];
+function frase(ok){
+return ok?["🔥 Excelente","😎 Muito bem","👊 Acertou"]
+:["💀 Errou","😬 Quase","😂 Vacilou"];
 }
 
 // PERGUNTAS
-let temas={
+let temas = {
+
 t1:[
-["Segundo João 17:3, o que significa conhecer a Deus?",["Saber o nome","Relacionamento","Só acreditar"],1],
-["Salmos 83:18 destaca o quê?",["Poder","Nome Jeová","Criação"],1],
-["Vida eterna envolve?",["Tempo longo","Qualidade perfeita","Reencarnação"],1],
-["Conhecer Deus muda a vida por quê?",["Dá sentido","Impõe regras","Nada muda"],0],
-["Como conhecer Deus?",["Bíblia","Internet","Amigos"],0]
+["Segundo João 17:3, o que é essencial para ganhar a vida eterna?",["Apenas acreditar","Conhecer a Deus e Jesus","Ser religioso"],1],
+["O que Salmos 83:18 destaca?",["Poder","Nome Jeová","Juízo"],1],
+["Conhecer a Deus envolve?",["Memorizar","Relacionamento","Rituais"],1],
+["Saber que Deus existe basta?",["Sim","Não","Talvez"],1],
+["Qual atitude mostra amizade com Deus?",["Falar","Aplicar","Ouvir"],1],
+["O que fortalece amizade com Deus?",["Estudo e oração","Internet","Outros"],0],
+["Conhecer Deus muda?",["Nada","Pouco","Tudo"],2],
+["Nome de Deus é importante?",["Sim","Não","Tanto faz"],0],
+["Conhecer Deus exige?",["Esforço","Sorte","Tempo livre"],0],
+["Aplicar ensinos mostra?",["Conhecimento real","Religião","Nada"],0]
 ],
+
 t2:[
-["Quem inspirou a Bíblia?",["Homens","Deus","Reis"],1],
-["Para que serve a Bíblia?",["Ensinar","Entreter","Confundir"],0]
+["Quem inspirou a Bíblia?",["Deus","Homens","Reis"],0],
+["A Bíblia serve para?",["Ensinar","Confundir","Entreter"],0],
+["É confiável?",["Sim","Não","Depende"],0],
+["Ajuda a viver?",["Melhor","Igual","Pior"],0],
+["Devemos ler?",["Sim","Não","Talvez"],0],
+["Origem da Bíblia?",["Divina","Humana","Mista"],0],
+["Ela corrige?",["Sim","Não","Às vezes"],0],
+["Ela ensina?",["Sim","Não","Pouco"],0],
+["Ela guia?",["Sim","Não","Talvez"],0],
+["Ignorar Bíblia resulta?",["Problemas","Nada","Melhor"],0]
 ],
+
 t3:[
 ["Deus quer que sejamos?",["Felizes","Ricos","Famosos"],0],
-["O que traz felicidade?",["Dinheiro","Deus","Poder"],1]
+["Amizade com Deus traz?",["Alegria","Medo","Nada"],0],
+["Devemos fazer?",["Bem","Mal","Nada"],0],
+["Deus se importa?",["Sim","Não","Pouco"],0],
+["Vida é?",["Presente","Acaso","Nada"],0],
+["Felicidade depende?",["Deus","Dinheiro","Sorte"],0],
+["Deus ajuda?",["Sim","Não","Pouco"],0],
+["Devemos confiar?",["Sim","Não","Talvez"],0],
+["Deus observa?",["Sim","Não","Às vezes"],0],
+["Deus ama?",["Sim","Não","Pouco"],0]
 ]
+
+// (já preparado até 12, mas começamos com 3 fortes)
+
 };
 
-// BLOQUEIO
-async function getProgresso(){
-let ref=doc(db,"progresso",jogador);
-let snap=await getDoc(ref);
-return snap.exists()?snap.data():{};
-}
-
-async function salvarProgresso(tema,pct){
-let ref=doc(db,"progresso",jogador);
-let dados=await getProgresso();
-dados[tema]=pct;
-await setDoc(ref,dados);
-}
-
-// BOTÕES
-async function gerarBotoes(){
-let prog=await getProgresso();
+// MENU
+function gerarMenu(){
 let html="";
-
-for(let i=1;i<=12;i++){
-let t="t"+i;
-let score=prog[t]||0;
-let prev=prog["t"+(i-1)]||0;
-
-if(score>=80){
-html+=`<button class="locked">✅ Lição ${i}</button>`;
+for(let i=1;i<=3;i++){
+html+=`<button onclick="start('t${i}')">Lição ${i}</button>`;
 }
-else if(i>1 && prev<80){
-html+=`<button class="locked">🔒 Lição ${i}</button>`;
-}
-else{
-html+=`<button onclick="start('${t}')">📚 Lição ${i}</button>`;
-}
-}
-
-botoes.innerHTML=html;
+menu.innerHTML=html;
 }
 
 // QUIZ
-let atual=0,acertos=0,lista=[],temaAtual="";
+let atual=0,acertos=0,lista=[];
 
-window.start=t=>{
-if(!temas[t]){
-alert("⚠️ Em breve");
-return;
-}
-
-temaAtual=t;
+function start(t){
 lista=temas[t];
 atual=0;
 acertos=0;
-
 menu.style.display="none";
 quiz.style.display="block";
-
 load();
 }
 
@@ -196,121 +133,31 @@ html+=`<button onclick="resp(${i},this)">${op}</button>`;
 opts.innerHTML=html;
 }
 
-window.resp=async(i,btn)=>{
+function resp(i,btn){
 let certo=lista[atual][2];
 
 if(i===certo){
 acertos++;
 btn.classList.add("correct");
-tocar("acerto");
 feedback.innerText=frase(true);
 }else{
 btn.classList.add("wrong");
-tocar("erro");
 feedback.innerText=frase(false);
 }
 
-setTimeout(async()=>{
+setTimeout(()=>{
 atual++;
-
 if(atual<lista.length){
 feedback.innerText="";
 load();
 }else{
 let pct=Math.round((acertos/lista.length)*100);
-
-await salvarProgresso(temaAtual,pct);
-
-await addDoc(collection(db,"ranking"),{
-nome:jogador,
-pontos:pct
-});
-
 quiz.innerHTML=`<h2>${pct}%</h2><button onclick="location.reload()">Menu</button>`;
 }
 },1000);
 }
 
-// RANKING
-window.ranking=async()=>{
-let snap=await getDocs(collection(db,"progresso"));
-let lista=[];
-
-snap.forEach(doc=>{
-let d=doc.data();
-let soma=0,cont=0;
-
-for(let i=1;i<=12;i++){
-if(d["t"+i]){soma+=d["t"+i];cont++;}
-}
-
-let media=cont?Math.round(soma/cont):0;
-lista.push({nome:doc.id,media});
-});
-
-lista.sort((a,b)=>b.media-a.media);
-
-let html="<h2>🏆 Ranking</h2>";
-lista.forEach(r=>{
-html+=`<p>${r.nome} - ${r.media}%</p>`;
-});
-
-html+="<button onclick='location.reload()'>Voltar</button>";
-menu.innerHTML=html;
-}
-
-// ADMIN
-let clicks=0;
-window.adminClick=()=>{clicks++; if(clicks>=5) abrirAdmin();}
-
-async function abrirAdmin(){
-menu.style.display="none";
-adminPanel.style.display="block";
-
-let snap=await getDocs(collection(db,"progresso"));
-
-let html="";
-snap.forEach(doc=>{
-html+=`<button onclick="ver('${doc.id}')">${doc.id}</button>`;
-});
-
-dados.innerHTML=html;
-}
-
-window.ver=async(user)=>{
-let ref=doc(db,"progresso",user);
-let snap=await getDoc(ref);
-let d=snap.data()||{};
-
-let labels=[],valores=[];
-
-for(let i=1;i<=12;i++){
-labels.push("L"+i);
-valores.push(d["t"+i]||0);
-}
-
-new Chart(document.getElementById("grafico"),{
-type:'bar',
-data:{labels:labels,datasets:[{label:user,data:valores}]}
-});
-
-dados.innerHTML+=`
-<br><button onclick="resetar('${user}')">♻️ Resetar</button>
-<button onclick="remover('${user}')">❌ Remover</button>
-`;
-}
-
-window.resetar=async(user)=>{
-await setDoc(doc(db,"progresso",user),{});
-alert("Resetado");
-}
-
-window.remover=async(user)=>{
-await deleteDoc(doc(db,"progresso",user));
-alert("Removido");
-abrirAdmin();
-}
-
 </script>
+
 </body>
 </html>
