@@ -21,11 +21,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// 🔥 COLE SEU CONFIG REAL AQUI
+// 🔥 SEU CONFIG (JÁ COLOCADO)
 const firebaseConfig = {
-  apiKey: "COLE_AQUI",
-  authDomain: "COLE_AQUI",
-  projectId: "COLE_AQUI"
+  apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
+  authDomain: "quiz-biblico-e1362.firebaseapp.com",
+  projectId: "quiz-biblico-e1362"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -38,7 +38,7 @@ const uid = user.user.uid;
 
 window.entrar = async function(){
 
-alert("clicou"); // 👈 ainda mantemos teste
+alert("clicou"); // teste
 
 let nome = document.getElementById("nome").value;
 
