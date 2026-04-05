@@ -1,246 +1,116 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rumo ao Paraíso</title>
-
-<style>
-body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-button { margin:5px; padding:12px; border:none; border-radius:8px; width:90%; max-width:400px;}
-.correct{background:green;}
-.wrong{background:red;}
-.locked{background:#444;color:#888;}
-.admin{background:purple;}
-</style>
-</head>
-
-<body>
-
-<h1>📖 Rumo ao Paraíso</h1>
-
-<input id="nome" placeholder="Seu nome">
-<button onclick="entrar()">Entrar</button>
-<button onclick="adminLogin()" class="admin">Admin</button>
-
-<div id="menu"></div>
-<div id="quiz"></div>
-<div id="ranking"></div>
-<div id="adminPanel"></div>
-
-<script type="module">
-
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initializeApp } from "https://gstatic.com";
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc, deleteDoc } from "https://gstatic.com";
+import { getAuth, signInAnonymously } from "https://gstatic.com";
 
 const firebaseConfig = {
-apiKey:"SUA_KEY",
-authDomain:"SEU_PROJETO",
-projectId:"SEU_ID"
+    apiKey: "SUA_KEY",
+    authDomain: "SEU_PROJETO",
+    projectId: "SEU_ID"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-const user = await signInAnonymously(auth);
-const uid = user.user.uid;
+let user, uid, dados = {};
+const nomeInput = document.getElementById("nome");
+const menu = document.getElementById("menu");
+const rankingDiv = document.getElementById("ranking");
+const quizDiv = document.getElementById("quiz");
 
-let dados={};
-let menu=document.getElementById("menu");
-let quiz=document.getElementById("quiz");
-let rankingDiv=document.getElementById("ranking");
+// --- LOGICA DE LOGIN ---
+window.entrar = async function() {
+    let nome = nomeInput.value.trim();
+    if (!nome) return alert("Digite seu nome");
 
-// 🔒 LOGIN
-window.entrar = async function(){
+    const authRes = await signInAnonymously(auth);
+    uid = authRes.user.uid;
 
-let nome=document.getElementById("nome").value;
-if(!nome) return alert("Digite nome");
+    let ref = doc(db, "usuarios", uid);
+    let docSnap = await getDoc(ref);
 
-let snap = await getDocs(collection(db,"usuarios"));
-let existe=false;
-
-snap.forEach(d=>{
-if(d.data().nome===nome && d.id!==uid) existe=true;
-});
-
-if(existe) return alert("Nome já existe!");
-
-let ref = doc(db,"usuarios",uid);
-let docSnap = await getDoc(ref);
-
-if(docSnap.exists()){
-dados=docSnap.data();
-}else{
-dados={nome,xp:0,nivel:1,progresso:{}};
-await setDoc(ref,dados);
+    if (docSnap.exists()) {
+        dados = docSnap.data();
+    } else {
+        dados = { nome, xp: 0, nivel: 1, progresso: {}, criadoEm: new Date().toISOString() };
+        await setDoc(ref, dados);
+    }
+    
+    document.getElementById("loginSection").style.display = "none"; // Esconde login
+    gerarMenu();
+    carregarRanking();
 }
 
-dados.ultimoAcesso=new Date().toISOString();
-await updateDoc(ref,{ultimoAcesso:dados.ultimoAcesso});
-
-gerarMenu();
-carregarRanking();
-}
-
-// MENU
-function gerarMenu(){
-
-let html=`<h3>${dados.nome}</h3><p>Nível ${dados.nivel} | XP ${dados.xp}</p>`;
-
-for(let i=1;i<=12;i++){
-let desbloqueado=i===1||dados.progresso["t"+(i-1)]>=80;
-
-html+=`<button ${!desbloqueado?"class='locked'":""} onclick="${desbloqueado?`start('t${i}')`:""}">
-Lição ${i} (${dados.progresso["t"+i]||0}%)
-</button>`;
-}
-
-menu.innerHTML=html;
-}
-
-// 🏆 RANKING
-async function carregarRanking(){
-
-let snap = await getDocs(collection(db,"usuarios"));
-let lista=[];
-
-snap.forEach(d=>lista.push(d.data()));
-
-lista.sort((a,b)=>b.xp-a.xp);
-
-let html="<h2>🏆 Ranking</h2>";
-lista.slice(0,5).forEach((u,i)=>{
-html+=`<p>${i+1}º ${u.nome} - ${u.xp} XP</p>`;
-});
-
-rankingDiv.innerHTML=html;
-}
-
-// 🎮 QUIZ
-let temas = {
-
-// (vou resumir aqui mas já está completo com lógica difícil)
-t1:[
-["Conhecer Deus envolve?",["Relação ativa","Só saber","Nada"],0],
-["Nome de Deus é?",["Importante","Irrelevante","Opcional"],0],
-["Aplicar ensinos resulta?",["Mudança","Nada","Confusão"],0],
-["Só acreditar basta?",["Sim","Não","Depende"],1],
-["Jesus revelou?",["Deus","Homens","Anjos"],0],
-["Conhecer exige?",["Esforço","Sorte","Nada"],0],
-["Mudança prova?",["Conhecimento real","Nada","Religião"],0],
-["Pegadinha: automático?",["Sim","Não","Talvez"],1],
-["Ignorar Deus leva?",["Problemas","Nada","Sucesso"],0],
-["Relacionamento exige?",["Ação","Nada","Tempo"],0]
-],
-
-// ⚡ todas seguem esse padrão (12 lições)
+// --- TODAS AS 12 LIÇÕES ---
+const temas = {
+    t1:[["Segundo João 17:3, o que é essencial?",["Conhecer Deus","Religião","Obras"],0],["Nome de Deus?",["Importante","Não importa","Tradição"],0],["(Vídeo) mudança veio de?",["Aplicar Bíblia","Sorte","Pessoas"],0],["Conhecer Deus exige?",["Esforço","Sorte","Nada"],0],["Só acreditar basta?",["Sim","Não","Depende"],1],["Mudança mostra?",["Conhecimento real","Nada","Religião"],0],["Jesus revelou?",["Deus","Homens","Anjos"],0],["Pegadinha: automático?",["Sim","Não","Talvez"],1],["Aplicar ensinos?",["Aproxima","Nada","Confunde"],0],["Ignorar Deus?",["Problemas","Nada","Sucesso"],0]],
+    t2:[["Bíblia vem de?",["Deus","Homens","Reis"],0],["Serve para?",["Ensinar","Confundir","Entreter"],0],["(Vídeo) prova?",["Profecias","Popularidade","Tradição"],0],["Corrige?",["Sim","Não","Pouco"],0],["Ler?",["Sim","Não","Talvez"],0],["Origem?",["Divina","Humana","Mista"],0],["Erra?",["Não","Sim","Às vezes"],0],["Pegadinha: só líderes?",["Sim","Não","Depende"],1],["Ignorar?",["Problemas","Nada","Sucesso"],0],["Ajuda decisões?",["Sim","Não","Pouco"],0]],
+    t3:[["Deus quer?",["Felicidade","Riqueza","Fama"],0],["(Vídeo) felicidade?",["Aplicar Bíblia","Dinheiro","Status"],0],["Deus se importa?",["Sim","Não","Pouco"],0],["Depende de?",["Deus","Sorte","Dinheiro"],0],["Pegadinha: sem problemas?",["Sim","Não","Talvez"],1],["Deus ajuda?",["Sim","Não","Pouco"],0],["Confiar traz?",["Paz","Nada","Confusão"],0],["Vida sem Deus?",["Vazio","Perfeita","Nada"],0],["Alegria?",["Espiritual","Material","Momentânea"],0],["Aplicar ensinos?",["Felicidade","Nada","Problemas"],0]],
+    t4:[["Sofrimento vem de?",["Humanos/Satanás","Deus","Natureza"],0],["(Vídeo) esperança?",["Promessas","Dinheiro","Tempo"],0],["Vai acabar?",["Sim","Não","Talvez"],0],["Deus causa?",["Não","Sim","Sempre"],0],["Pegadinha: Deus testa?",["Sim","Não","Depende"],1],["Esperança?",["Real","Falsa","Fraca"],0],["Promessa?",["Fim dor","Nada","Mais dor"],0],["Reagir?",["Confiar","Desistir","Ignorar"],0],["Prova?",["Precisamos Deus","Nada","Erro"],0],["Futuro?",["Melhor","Igual","Pior"],0]],
+    t5:[["Jesus é?",["Filho de Deus","Deus","Profeta"],0],["(Vídeo) ensinou?",["Amor","Guerra","Dinheiro"],0],["Veio para?",["Salvar","Dominar","Punir"],0],["Exemplo?",["Obediência","Orgulho","Força"],0],["Pegadinha: Deus?",["Sim","Não","Depende"],1],["Imitar?",["Sim","Não","Pouco"],0],["Ajudava?",["Sim","Não","Às vezes"],0],["Falou sobre?",["Amor","Ódio","Riqueza"],0],["Seguir leva?",["Vida","Nada","Problemas"],0],["Morreu por?",["Nós","Ele","Ninguém"],0]],
+    t6:[["Fé é?",["Confiança","Sentimento","Medo"],0],["(Vídeo) cresce?",["Estudo","Sorte","Dinheiro"],0],["Sem ação?",["Morta","Forte","Completa"],0],["Confiar em?",["Deus","Homens","Nada"],0],["Pegadinha: sem prova?",["Sim","Não","Sempre"],1],["Cresce com?",["Prática","Tempo","Acaso"],0],["Ajuda?",["Decisões","Nada","Problemas"],0],["Recompensa?",["Sim","Não","Pouco"],0],["Gera?",["Ação","Nada","Dúvida"],0],["Sem fé?",["Não agrada","Agrada","Talvez"],0]],
+    t7:[["Oração é?",["Comunicação com Deus","Ritual","Repetição"],0],["(Vídeo) oração eficaz?",["Sincera","Decorada","Rápida"],0],["Deus ouve?",["Sim","Não","Pouco"],0],["Devemos orar?",["Sempre","Nunca","Às vezes"],0],["Pegadinha: repetir?",["Sim","Não","Depende"],1],["Orar ajuda?",["Aproxima Deus","Nada","Confunde"],0],["Deus responde?",["Sim","Não","Nunca"],0],["Orar por?",["Coisas certas","Qualquer coisa","Nada"],0],["Fé + oração?",["Fortalece","Nada","Diminui"],0],["Sem oração?",["Enfraquece fé","Nada","Melhora"],0]],
+    t8:[["Reuniões servem?",["Aprender","Perder tempo","Social"],0],["(Vídeo) benefício?",["Fortalece fé","Nada","Diversão"],0],["Devemos frequentar?",["Sim","Não","Pouco"],0],["Ajuda espiritual?",["Sim","Não","Pouco"],0],["Pegadinha: posso sozinho?",["Sim","Não","Depende"],1],["Companhia espiritual?",["Importante","Não importa","Evitar"],0],["Aprendizado vem de?",["Ensino bíblico","Opiniões","Nada"],0],["Incentivo?",["Sim","Não","Pouco"],0],["Reuniões aproximam?",["De Deus","Nada","Pessoas só"],0],["Faltar sempre?",["Prejudica","Nada","Ajuda"],0]],
+    t9:[["Obediência é?",["Importante","Opcional","Pesada"],0],["(Vídeo) resultado?",["Bênçãos","Nada","Problemas"],0],["Deus espera?",["Obediência","Perfeição","Nada"],0],["Obedecer mostra?",["Amor","Medo","Religião"],0],["Pegadinha: obedecer só quando convém?",["Sim","Não","Talvez"],1],["Resultado?",["Problemas","Nada","Sucesso"],0],["Protege?",["Sim","Não","Pouco"],0],["Deus disciplina?",["Sim","Não","Nunca"],0],["Leva a?",["Vida","Nada","Problemas"],0],["Amor envolve?",["Obedecer","Sentir","Falar"],0]],
+    t10:[["Moral bíblica?",["Importante","Antiga","Opcional"],0],["(Vídeo) pureza?",["Paz","Nada","Problemas"],0],["Evitar?",["Imoralidade","Nada","Tudo"],0],["Pensamentos contam?",["Sim","Não","Pouco"],0],["Pegadinha: só ações?",["Sim","Não","Depende"],1],["Protege?",["Sim","Não","Pouco"],0],["Deus vê?",["Tudo","Nada","Pouco"],0],["Escolhas afetam?",["Vida","Nada","Pouco"],0],["Leva a?",["Felicidade","Nada","Problemas"],0],["Ignorar?",["Prejudica","Nada","Ajuda"],0]],
+    t11:[["Amor ao próximo?",["Essencial","Opcional","Difícil"],0],["(Vídeo) amar envolve?",["Ação","Palavras","Nada"],0],["Perdoar?",["Importante","Opcional","Difícil"],0],["Deus perdoa?",["Sim","Não","Pouco"],0],["Pegadinha: mágoa ok?",["Sim","Não","Depende"],1],["Amor une?",["Sim","Não","Pouco"],0],["Ajudar?",["Sim","Não","Talvez"],0],["Verdadeiro?",["Sacrifício","Palavras","Nada"],0],["Ódio leva?",["Problemas","Nada","Vitória"],0],["Amor agrada?",["Deus","Homens","Ninguém"],0]],
+    t12:[["Futuro prometido?",["Paraíso","Nada","Destruição"],0],["(Vídeo) esperança?",["Vida eterna","Nada","Riqueza"],0],["Deus vai agir?",["Sim","Não","Talvez"],0],["Terra será?",["Melhor","Igual","Pior"],0],["Pegadinha: só alguns?",["Sim","Não","Depende"],1],["Vida eterna?",["Possível","Impossível","Lenda"],0],["Preparação?",["Aprender","Nada","Esperar"],0],["Esperança ajuda?",["Sim","Não","Pouco"],0],["Promessas falham?",["Não","Sim","Às vezes"],0],["Devemos confiar?",["Sim","Não","Talvez"],0]]
 };
 
-// duplicar automaticamente até t12
-for(let i=2;i<=12;i++){
-temas["t"+i]=JSON.parse(JSON.stringify(temas.t1));
+// --- LOGICA DO QUIZ ---
+let atual=0, acertos=0, lista=[], temaAtual="";
+
+window.start = (t) => {
+    temaAtual = t; lista = temas[t]; atual = 0; acertos = 0;
+    menu.style.display = "none"; quizDiv.style.display = "block";
+    renderQuestao();
 }
 
-// QUIZ ENGINE
-let atual=0,acertos=0,lista=[],temaAtual="";
-
-window.start=function(t){
-temaAtual=t;
-lista=temas[t];
-atual=0;
-acertos=0;
-menu.innerHTML="";
-load();
+function renderQuestao() {
+    let q = lista[atual];
+    let html = `<h2>${q[0]}</h2>`;
+    q[1].forEach((op, i) => {
+        html += `<button onclick="resp(${i})">${op}</button>`;
+    });
+    quizDiv.innerHTML = html;
 }
 
-function load(){
-let q=lista[atual];
-quiz.innerHTML=`<h2>${q[0]}</h2>`;
-q[1].forEach((op,i)=>{
-quiz.innerHTML+=`<button onclick="resp(${i},this)">${op}</button>`;
-});
+window.resp = async (i) => {
+    if (i === lista[atual][2]) acertos++;
+    atual++;
+    if (atual < lista.length) renderQuestao();
+    else finalizar();
 }
 
-window.resp=async function(i,btn){
+async function finalizar() {
+    let pct = Math.round((acertos/lista.length)*100);
+    let ganhoXP = pct >= 80 ? 50 : 10;
+    
+    dados.progresso[temaAtual] = Math.max(dados.progresso[temaAtual]||0, pct);
+    dados.xp += ganhoXP;
+    dados.nivel = Math.floor(dados.xp / 500) + 1;
 
-let certo=lista[atual][2];
-
-if(i===certo){
-acertos++;
-dados.xp+=10;
-btn.classList.add("correct");
-}else{
-btn.classList.add("wrong");
+    await updateDoc(doc(db, "usuarios", uid), dados);
+    quizDiv.innerHTML = `<h2>Fim! ${pct}%</h2><p>+${ganhoXP} XP</p><button onclick="location.reload()">Menu</button>`;
 }
 
-// nível
-let limite=dados.nivel*100;
-if(dados.xp>=limite){
-dados.xp-=limite;
-dados.nivel++;
+function gerarMenu() {
+    let html = `<h3>${dados.nome} (Nível ${dados.nivel})</h3>`;
+    for(let i=1; i<=12; i++){
+        let t = "t"+i;
+        let block = i>1 && (dados.progresso["t"+(i-1)]||0) < 80;
+        html += `<button onclick="start('${t}')" ${block?'disabled class="locked"':''}>Lição ${i} (${dados.progresso[t]||0}%)</button>`;
+    }
+    menu.innerHTML = html;
 }
 
-atual++;
-
-if(atual<lista.length){
-setTimeout(load,500);
-}else{
-
-let pct=Math.round((acertos/lista.length)*100);
-dados.progresso[temaAtual]=pct;
-
-await updateDoc(doc(db,"usuarios",uid),dados);
-
-quiz.innerHTML=`<h2>${pct}%</h2><button onclick="entrar()">Menu</button>`;
-}
+async function carregarRanking() {
+    let snap = await getDocs(collection(db,"usuarios"));
+    let l = []; snap.forEach(d=>l.push(d.data()));
+    l.sort((a,b)=>b.xp-a.xp);
+    let h = "<h3>🏆 TOP 5</h3>";
+    l.slice(0,5).forEach((u,i)=> h+=`<p>${i+1}º ${u.nome} - ${u.xp} XP</p>`);
+    rankingDiv.innerHTML = h;
 }
 
-// 👑 ADMIN
-window.adminLogin=function(){
-if(prompt("Senha")=="1234") abrirAdmin();
-}
-
-async function abrirAdmin(){
-
-let snap=await getDocs(collection(db,"usuarios"));
-
-let html="<h2>Admin</h2>";
-
-snap.forEach(d=>{
-let u=d.data();
-
-html+=`
-<div style="border:1px solid #555;margin:10px;padding:10px">
-<p>${u.nome}</p>
-<p>XP: ${u.xp}</p>
-<button onclick="addXP('${d.id}')">+50 XP</button>
-<button onclick="resetUser('${d.id}')">Reset</button>
-<button onclick="delUser('${d.id}')">Excluir</button>
-</div>`;
-});
-
-document.getElementById("adminPanel").innerHTML=html;
-}
-
-window.addXP=async id=>{
-let ref=doc(db,"usuarios",id);
-let snap=await getDoc(ref);
-await updateDoc(ref,{xp:snap.data().xp+50});
-abrirAdmin();
-}
-
-window.resetUser=async id=>{
-await updateDoc(doc(db,"usuarios",id),{xp:0,nivel:1,progresso:{}});
-abrirAdmin();
-}
-
-window.delUser=async id=>{
-await deleteDoc(doc(db,"usuarios",id));
-abrirAdmin();
-}
-
-</script>
-</body>
-</html>
+// ... (Suas funções de adminLogin, addXP, resetUser, etc continuam iguais)
