@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rumo ao Paraíso</title>
+<title>Teste Banco Organizado</title>
 
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
@@ -15,7 +15,7 @@ button { margin:5px; padding:12px; border:none; border-radius:8px; width:90%; ma
 
 <body>
 
-<h1>📖 Rumo ao Paraíso</h1>
+<h1>📖 Teste Banco</h1>
 
 <input id="nome" placeholder="Seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
@@ -29,7 +29,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-// 🔥 COLOCA SEUS DADOS AQUI
+// 🔥 COLOQUE SEUS DADOS AQUI
 const firebaseConfig = {
   apiKey: "SUA_KEY",
   authDomain: "SEU_PROJETO.firebaseapp.com",
@@ -46,6 +46,11 @@ const uid = user.user.uid;
 
 let dados = {};
 
+// 🔥 FUNÇÃO SALVAR (ESSENCIAL)
+async function salvar(){
+  await setDoc(doc(db,"usuarios",uid),dados);
+}
+
 // LOGIN
 window.entrar = async function(){
 
@@ -61,12 +66,15 @@ dados = snap.data();
 dados = {
 nome,
 xp:0,
-nivel:1
+nivel:1,
+progresso:{}
 };
-await setDoc(ref,dados);
+await salvar();
 }
 
-// mostrar menu
+dados.ultimoAcesso = new Date().toISOString();
+await salvar();
+
 document.getElementById("menu").innerHTML = `
 <h3>👤 ${dados.nome}</h3>
 <p>Nível ${dados.nivel} | XP ${dados.xp}</p>
@@ -75,13 +83,11 @@ document.getElementById("menu").innerHTML = `
 
 }
 
-// QUIZ
+// QUIZ SIMPLES
 let perguntas = [
 ["Deus quer que sejamos felizes?",["Sim","Não","Talvez"],0],
 ["A Bíblia é inspirada por Deus?",["Sim","Não","Talvez"],0],
-["Precisamos aplicar o que aprendemos?",["Sim","Não","Depende"],0],
-["Conhecer Deus exige esforço?",["Sim","Não","Depende"],0],
-["Só acreditar basta?",["Sim","Não","Talvez"],1]
+["Precisamos aplicar o que aprendemos?",["Sim","Não","Depende"],0]
 ];
 
 let atual = 0;
@@ -123,8 +129,7 @@ dados.xp = 0;
 dados.nivel++;
 }
 
-// salvar
-await setDoc(doc(db,"usuarios",uid),dados);
+await salvar();
 
 atual++;
 
@@ -132,8 +137,16 @@ setTimeout(()=>{
 if(atual < perguntas.length){
 load();
 }else{
+
+let pct = Math.round((acertos/perguntas.length)*100);
+
+// salva progresso da "lição 1"
+dados.progresso["t1"] = pct;
+
+salvar();
+
 document.getElementById("quiz").innerHTML = `
-<h2>Resultado: ${acertos}/${perguntas.length}</h2>
+<h2>Resultado: ${pct}%</h2>
 <button onclick="voltar()">Voltar</button>
 `;
 }
