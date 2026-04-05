@@ -3,160 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Teste Banco Organizado</title>
+<title>Teste Clique</title>
 
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
 button { margin:5px; padding:12px; border:none; border-radius:8px; width:90%; max-width:400px;}
-.correct{background:green;}
-.wrong{background:red;}
 </style>
 </head>
 
 <body>
 
-<h1>📖 Teste Banco</h1>
+<h1>📖 Teste Clique</h1>
 
 <input id="nome" placeholder="Seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
 
 <div id="menu"></div>
-<div id="quiz"></div>
 
-<script type="module">
+<script>
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+window.entrar = function(){
 
-// 🔥 COLOQUE SEUS DADOS AQUI
-const firebaseConfig = {
-  apiKey: "SUA_KEY",
-  authDomain: "SEU_PROJETO.firebaseapp.com",
-  projectId: "SEU_ID"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-// login anônimo
-const user = await signInAnonymously(auth);
-const uid = user.user.uid;
-
-let dados = {};
-
-// 🔥 FUNÇÃO SALVAR (ESSENCIAL)
-async function salvar(){
-  await setDoc(doc(db,"usuarios",uid),dados);
-}
-
-// LOGIN
-window.entrar = async function(){
+alert("clicou"); // 👈 TESTE
 
 let nome = document.getElementById("nome").value;
-if(!nome) return alert("Digite seu nome");
 
-let ref = doc(db,"usuarios",uid);
-let snap = await getDoc(ref);
-
-if(snap.exists()){
-dados = snap.data();
-}else{
-dados = {
-nome,
-xp:0,
-nivel:1,
-progresso:{}
-};
-await salvar();
+if(!nome){
+alert("Digite seu nome");
+return;
 }
-
-dados.ultimoAcesso = new Date().toISOString();
-await salvar();
 
 document.getElementById("menu").innerHTML = `
-<h3>👤 ${dados.nome}</h3>
-<p>Nível ${dados.nivel} | XP ${dados.xp}</p>
-<button onclick="start()">Começar Quiz</button>
+<h3>Olá ${nome}</h3>
+<button onclick="alert('Quiz funcionando!')">Começar Quiz</button>
 `;
 
-}
-
-// QUIZ SIMPLES
-let perguntas = [
-["Deus quer que sejamos felizes?",["Sim","Não","Talvez"],0],
-["A Bíblia é inspirada por Deus?",["Sim","Não","Talvez"],0],
-["Precisamos aplicar o que aprendemos?",["Sim","Não","Depende"],0]
-];
-
-let atual = 0;
-let acertos = 0;
-
-window.start = function(){
-atual = 0;
-acertos = 0;
-load();
-}
-
-function load(){
-
-let q = perguntas[atual];
-
-let html = `<h2>${q[0]}</h2>`;
-
-q[1].forEach((op,i)=>{
-html += `<button onclick="responder(${i},this)">${op}</button>`;
-});
-
-document.getElementById("quiz").innerHTML = html;
-}
-
-// RESPONDER
-window.responder = async function(i,btn){
-
-if(i === perguntas[atual][2]){
-acertos++;
-dados.xp += 10;
-btn.classList.add("correct");
-}else{
-btn.classList.add("wrong");
-}
-
-// subir nível
-if(dados.xp >= dados.nivel * 100){
-dados.xp = 0;
-dados.nivel++;
-}
-
-await salvar();
-
-atual++;
-
-setTimeout(()=>{
-if(atual < perguntas.length){
-load();
-}else{
-
-let pct = Math.round((acertos/perguntas.length)*100);
-
-// salva progresso da "lição 1"
-dados.progresso["t1"] = pct;
-
-salvar();
-
-document.getElementById("quiz").innerHTML = `
-<h2>Resultado: ${pct}%</h2>
-<button onclick="voltar()">Voltar</button>
-`;
-}
-},500);
-
-}
-
-// VOLTAR
-window.voltar = function(){
-document.getElementById("quiz").innerHTML = "";
 }
 
 </script>
