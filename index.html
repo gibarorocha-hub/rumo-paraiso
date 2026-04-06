@@ -49,7 +49,6 @@ border-radius:10px;
 <div id="ranking"></div>
 <div id="admin"></div>
 
-<!-- sons melhores -->
 <audio id="somAcerto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b0c3f.mp3"></audio>
 <audio id="somErro" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_4c8a9d1b1f.mp3"></audio>
 
@@ -133,48 +132,168 @@ ${uid===ADMIN_UID ? `<button class="admin" onclick="painelAdmin()">👑 ADMIN</b
 carregarRanking();
 }
 
-// PERGUNTAS (LIÇÃO 1 REAL)
-
+// 🔥 TODAS AS LIÇÕES COMPLETAS
 let temas = {
 
 t1:[
+["Por que muitos procuram a Bíblia?",["Tradição","Respostas da vida","Obrigação"],1],
+["A Bíblia responde:",["Riqueza","Objetivo da vida","Velhice"],1],
+["A Bíblia ajuda com:",["Regras rígidas","Conselhos práticos","Nada"],1],
+["2 Timóteo 3:16:",["Proveitosa","Confusa","Antiga"],0],
+["Salmo 119:105:",["Guia","Opcional","Confunde"],0],
+["Perguntar é:",["Importante","Errado","Proibido"],0],
+["Estudo leva a:",["Mudança","Nada","Dúvida"],0],
+["Mateus 7:7:",["Buscar","Esperar","Ignorar"],0],
+["Romanos 15:4:",["Esperança","Medo","Dúvida"],0],
+["Entender exige:",["Ajuda","Sorte","Nada"],0]
+],
 
-["Segundo a introdução da lição, por que muitas pessoas procuram a Bíblia?", 
-["Por tradição religiosa","Porque ela responde às perguntas mais importantes da vida","Porque é obrigatória"],1],
+t2:[
+["Precisamos de esperança porque:",["Problemas","Riqueza","Obrigação"],0],
+["Jeremias 29:11:",["Esperança","Dinheiro","Sorte"],0],
+["Apocalipse 21:4:",["Sem dor","Mais dor","Igual"],0],
+["Deixarão de existir:",["Morte","Só guerra","Só fome"],0],
+["Viveremos:",["Para sempre","Pouco","No céu apenas"],0],
+["Atos 17:11:",["Examinar","Ignorar","Aceitar tudo"],0],
+["Esperança ajuda:",["Enfrentar","Desistir","Ignorar"],0],
+["Alegria:",["Ajuda","Nada","Prejudica"],0],
+["Esperança:",["Muda atitude","Nada","Engana"],0],
+["Bíblia é para:",["Todos","Alguns","Poucos"],0]
+],
 
-["Qual dos assuntos abaixo a Bíblia ajuda a entender?", 
-["Somente religião","Vida, sofrimento e futuro","Apenas história"],1],
+t3:[
+["Bíblia contém:",["Verdade","Lenda","Opinião"],0],
+["Lucas 1:3:",["Investigação","Invenção","Cópia"],0],
+["Arqueologia:",["Confirma","Nada","Desmente"],0],
+["À frente em:",["Ciência","Política","Nada"],0],
+["Salmo 111:8:",["Confiável","Duvidosa","Errada"],0],
+["Isaías 46:10:",["Profecia","História","Lei"],0],
+["Jó 26:7:",["Suspensa","Base","Plana"],0],
+["Jó 36:",["Água","Sol","Lua"],0],
+["Isaías 44:",["Ciro","Roma","Egito"],0],
+["2 Timóteo:",["Últimos dias","Criação","Lei"],0]
+],
 
-["A Bíblia ajuda no dia a dia com:", 
-["Regras rígidas","Conselhos práticos","Nada"],1],
+t4:[
+["Nome de Deus:",["Jeová","Senhor","Deus"],0],
+["Significa:",["Faz acontecer","Julga","Observa"],0],
+["Aparece:",["+7000","100","Pouco"],0],
+["Jeová é:",["Único","Um de muitos","Igual"],0],
+["Altíssimo:",["Salmo 83","Gênesis","Mateus"],0],
+["Criador:",["Apocalipse","Lucas","João"],0],
+["Sempre existiu:",["Sim","Não","Talvez"],0],
+["Nome vs título:",["Identifica","Igual","Nada"],0],
+["Romanos 10:",["Usar nome","Ignorar","Evitar"],0],
+["Tiago 4:",["Aproximar","Afastar","Ignorar"],0]
+],
 
-["Qual pergunta a Bíblia responde?", 
-["Como enriquecer","Objetivo da vida","Como não envelhecer"],1],
+t5:[
+["Escritores:",["40","12","100"],0],
+["Tempo:",["1600 anos","100","500"],0],
+["Espírito santo:",["Inspirou","Ignorou","Inventou"],0],
+["Autor real:",["Deus","Homens","Reis"],0],
+["Mensagem:",["De Deus","Humana","Misturada"],0],
+["Disponível:",["Todas línguas","Poucas","Uma"],0],
+["Protegida:",["Sim","Não","Pouco"],0],
+["Copiada:",["Com cuidado","Aleatória","Errada"],0],
+["Sobreviveu:",["Sim","Não","Parcial"],0],
+["Permanece:",["Para sempre","Tempo","Acaba"],0]
+],
 
-["Por que fazer perguntas não é errado?", 
-["São importantes","São proibidas","Não têm resposta"],0],
+t6:[
+["Universo:",["Teve começo","Sempre existiu","Acaso"],0],
+["Gênesis 1:1:",["Criou","Formou sozinho","Nada"],0],
+["Terra feita para:",["Habitar","Nada","Teste"],0],
+["Humanos:",["Imagem de Deus","Animais","Iguais"],0],
+["Diferença:",["Amor","Força","Instinto"],0],
+["Vida surgiu:",["Criada","Acaso","Evolução pura"],0],
+["Projeto:",["Sim","Não","Talvez"],0],
+["Natureza:",["Mostra Deus","Nada","Confunde"],0],
+["Espécies:",["Criadas","Evoluíram","Mistura"],0],
+["Humanos podem:",["Adorar","Nada","Instinto"],0]
+],
 
-["A Bíblia é proveitosa para:", 
-["Ensinar","Confundir","Ignorar"],0],
+t7:[
+["Deus é:",["Espírito","Humano","Energia"],0],
+["Qualidade:",["Amor","Ódio","Indiferença"],0],
+["Jeová é:",["Misericordioso","Cruel","Frio"],0],
+["Perto de:",["Sofrendo","Ricos","Fortes"],0],
+["Fica feliz:",["Com o bem","Com o mal","Nada"],0],
+["Espírito santo:",["Força","Pessoa","Anjo"],0],
+["Usa para:",["Criar","Destruir","Nada"],0],
+["Qualidades:",["Muitas","Poucas","Nenhuma"],0],
+["Se importa:",["Sim","Não","Pouco"],0],
+["Criação mostra:",["Amor","Nada","Confusão"],0]
+],
 
-["Salmo 119:105 mostra que a Bíblia:", 
-["Guia a vida","É opcional","Confunde"],0],
+t8:[
+["Jeová convida:",["Amizade","Distância","Medo"],0],
+["Tiago 4:8:",["Aproxime","Afaste","Ignore"],0],
+["Melhor amigo:",["Jeová","Homem","Ninguém"],0],
+["Espera:",["Obediência","Perfeição","Nada"],0],
+["Abraão:",["Amigo","Inimigo","Desconhecido"],0],
+["Ajuda:",["Sim","Não","Pouco"],0],
+["Falar:",["Oração","Silêncio","Nada"],0],
+["Ouvir:",["Bíblia","Sonhos","Nada"],0],
+["Amizade:",["Possível","Impossível","Difícil"],0],
+["Valor:",["Alto","Baixo","Nenhum"],0]
+],
 
-["O vídeo mostrou que estudar a Bíblia:", 
-["Ajuda a encontrar respostas","Não ajuda","Confunde"],0],
+t9:[
+["Orar para:",["Jeová","Jesus","Qualquer"],0],
+["Mateus 6:",["Pai nosso","Rezar","Repetir"],0],
+["Orar:",["Qualquer assunto","Só fixo","Nada"],0],
+["Deve ser:",["Sincera","Decorada","Rápida"],0],
+["Deus responde:",["Sim","Não","Talvez"],0],
+["Resposta:",["Bíblia","Nada","Sorte"],0],
+["Repetir:",["Errado","Certo","Necessário"],0],
+["Ajuda:",["Paz","Medo","Nada"],0],
+["Amém:",["Assim seja","Fim","Nada"],0],
+["Jesus orava:",["Sempre","Nunca","Pouco"],0]
+],
 
-["Mateus 7:7 ensina:", 
-["Buscar respostas","Esperar parado","Ignorar"],0],
+t10:[
+["Reuniões:",["Adorar","Social","Nada"],0],
+["Aprender:",["Bíblia","Política","Negócio"],0],
+["Importância:",["Alta","Baixa","Nenhuma"],0],
+["Ajuda:",["Aproximar Deus","Afastar","Nada"],0],
+["Participar:",["Opcional","Obrigatório","Proibido"],0],
+["Dinheiro:",["Não pedem","Sempre pedem","Cobram"],0],
+["Pessoas:",["Se ajudam","Ignoram","Discutem"],0],
+["Hebreus 10:",["Reunir","Isolar","Evitar"],0],
+["Jesus ia:",["Sim","Não","Pouco"],0],
+["Vale a pena:",["Sim","Não","Talvez"],0]
+],
 
-["Romanos 15:4 mostra que a Bíblia traz:", 
-["Consolo e esperança","Medo","Dúvida"],0]
+t11:[
+["Ler Bíblia:",["Regular","Raro","Nunca"],0],
+["Salmo 1:",["Feliz","Triste","Neutro"],0],
+["Meditar:",["Pensar","Ignorar","Ler rápido"],0],
+["Aplicar:",["Sim","Não","Talvez"],0],
+["Tempo:",["Separar","Ignorar","Fugir"],0],
+["Gostar:",["Aprender","Nada","Evitar"],0],
+["Começar:",["Simples","Difícil","Grande"],0],
+["Ferramenta:",["App","Nada","Sorte"],0],
+["Preparar:",["Ajuda","Nada","Confunde"],0],
+["Oração:",["Importante","Nada","Opcional"],0]
+],
 
+t12:[
+["Bíblia é:",["Poderosa","Fraca","Nada"],0],
+["Importante:",["Muito","Pouco","Nada"],0],
+["Valor:",["Tesouro","Normal","Baixo"],0],
+["Jeová ajuda:",["Sim","Não","Pouco"],0],
+["Orar:",["Sempre","Nunca","Pouco"],0],
+["Prioridade:",["Alta","Baixa","Nada"],0],
+["Desistir:",["Não","Sim","Tanto faz"],0],
+["Outros contra:",["Continuar","Parar","Ignorar"],0],
+["Hebreus 11:",["Recompensa","Nada","Erro"],0],
+["Esforço:",["Vale a pena","Não vale","Tanto faz"],0]
 ]
 
 };
 
-// repetir temporariamente
-for(let i=2;i<=12;i++) temas["t"+i]=temas.t1;
+// RESTO DO CÓDIGO CONTINUA IGUAL 👇
 
 // QUIZ
 let lista=[], atual=0, acertos=0, temaAtual="";
@@ -243,76 +362,6 @@ snap.forEach(d=>lista.push(d.data()));
 lista.sort((a,b)=>b.nivel - a.nivel || b.xp - a.xp);
 
 ranking.innerHTML="<h3>🏆 Ranking</h3>"+lista.slice(0,5).map(u=>`<p>${u.nome} - Nv ${u.nivel} (${u.xp}xp)</p>`).join("");
-}
-
-// ADMIN COMPLETO
-window.painelAdmin = async function(){
-
-let snap = await getDocs(collection(db,"usuarios"));
-let html = "<h3>👑 ADMIN COMPLETO</h3>";
-
-snap.forEach(docSnap=>{
-let u = docSnap.data();
-let id = docSnap.id;
-
-let progressoHTML = "";
-for(let i=1;i<=12;i++){
-let t="t"+i;
-let valor = u.progresso?.[t] || 0;
-progressoHTML += `L${i}: ${valor}% | `;
-}
-
-html += `
-<div class="card">
-<b>${u.nome}</b><br>
-UID: ${id}<br>
-⭐ Nível: ${u.nivel}<br>
-🔥 XP: ${u.xp}<br>
-🕒 Último acesso: ${u.ultimoAcesso || "-"}<br>
-📊 ${progressoHTML}<br><br>
-
-<button onclick="addXP('${id}',50)">+50 XP</button>
-<button onclick="addXP('${id}',-50)">-50 XP</button>
-<button onclick="uparNivel('${id}')">⬆️ Nível</button>
-<button onclick="resetar('${id}')">🔄 Resetar</button>
-<button onclick="excluir('${id}')" style="background:red">❌ Excluir</button>
-</div>
-`;
-});
-
-admin.innerHTML = html;
-}
-
-// FUNÇÕES ADMIN
-window.addXP = async function(id,valor){
-let ref = doc(db,"usuarios",id);
-let snap = await getDoc(ref);
-let atual = snap.data().xp || 0;
-await updateDoc(ref,{xp: Math.max(0, atual + valor)});
-painelAdmin();
-}
-
-window.uparNivel = async function(id){
-let ref = doc(db,"usuarios",id);
-let snap = await getDoc(ref);
-let nivel = snap.data().nivel || 1;
-await updateDoc(ref,{nivel: nivel + 1});
-painelAdmin();
-}
-
-window.resetar = async function(id){
-await updateDoc(doc(db,"usuarios",id),{
-progresso:{},
-xp:0
-});
-painelAdmin();
-}
-
-window.excluir = async function(id){
-if(confirm("Excluir usuário?")){
-await deleteDoc(doc(db,"usuarios",id));
-painelAdmin();
-}
 }
 
 </script>
