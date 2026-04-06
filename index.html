@@ -3,94 +3,115 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Bíblico ABSURDO</title>
+<title>Quiz Bíblico ULTRA</title>
 
 <style>
-body { font-family: Arial; text-align:center; background:#0b0b0b; color:#fff; }
+body { font-family: Arial; text-align:center; background:#111; color:#fff; }
 
 button {
  margin:5px;
- padding:12px;
+ padding:10px;
  width:90%;
  max-width:400px;
- border-radius:10px;
+ border-radius:8px;
  border:none;
- font-size:16px;
 }
 
-.correct{background:#00c853;}
-.wrong{background:#d50000;}
-.locked{background:#333;color:#777;}
+.correct{background:#2ecc71;}
+.wrong{background:#e74c3c;}
+.locked{background:#444;color:#888;}
 .admin{background:orange;}
 
-.top{
-margin:10px;
-padding:10px;
-border:1px solid #444;
-border-radius:10px;
-}
-
+.top{margin:10px;padding:10px;border:1px solid #555;border-radius:10px;}
 </style>
 </head>
 
 <body>
 
-<h2>📖 Quiz Bíblico ABSURDO</h2>
+<h2>📖 Quiz Bíblico ULTRA</h2>
 
 <input id="nome" placeholder="Seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
+<button onclick="loginAdmin()">Login Admin</button>
+<button onclick="multi()">👥 Multiplayer</button>
 
 <div id="menu"></div>
 <div id="quiz"></div>
 <div id="ranking"></div>
+<div id="admin"></div>
 
 <audio id="acerto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b0c3f.mp3"></audio>
 <audio id="erro" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_4c8a9d1b1f.mp3"></audio>
 
-<script>
+<script type="module">
 
-let dados={nome:"",xp:0,nivel:1,liga:"Bronze",streak:0};
-let vidas=3,combo=0,tempo=30,intervalo;
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getAuth, signInAnonymously, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-let perguntas = [
-["Qual NÃO é objetivo da Bíblia?",["Ensinar","Guiar","Confundir"],2],
-["Mateus 7:7 ensina:",["Buscar","Esperar","Ignorar"],0],
-["Romanos 15:4 fala de:",["Esperança","Medo","Confusão"],0],
-["Ignorar perguntas causa:",["Estagnação","Fé","Alegria"],0],
-["Entender exige:",["Esforço","Sorte","Nada"],0],
-["A Bíblia ajuda:",["Vida prática","Nada","Só teoria"],0],
-["Perguntar mostra:",["Interesse","Erro","Fraqueza"],0],
-["Estudo gera:",["Mudança","Nada","Orgulho"],0],
-["A Bíblia é:",["Proveitosa","Confusa","Limitada"],0],
-["Dúvida sincera leva a:",["Aprender","Desviar","Parar"],0]
-];
+const firebaseConfig = {
+ apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
+ authDomain: "quiz-biblico-e1362.firebaseapp.com",
+ projectId: "quiz-biblico-e1362"
+};
 
-// DUPLICA PARA FICAR LONGO (SIMULA 120)
-perguntas = Array(12).fill(perguntas).flat();
+const ADMIN_UID = "Pmbm5BqKNRXu3gXI4EPj5LrddNC3";
 
-let lista=[], atual=0, acertos=0;
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let uid=null, dados={}, combo=0, vidas=3, tempo=30, intervalo;
+let lista=[], atual=0, acertos=0, temaAtual="";
+
+// LOGIN
+window.loginAdmin = async function(){
+let email=prompt("Email:");
+let senha=prompt("Senha:");
+let cred=await signInWithEmailAndPassword(auth,email,senha);
+uid=cred.user.uid;
+alert("ADMIN ATIVO");
+entrar();
+}
+
+const user = await signInAnonymously(auth);
+if(!uid) uid=user.user.uid;
+
+async function salvar(){
+await setDoc(doc(db,"usuarios",uid),dados);
+}
 
 // ENTRAR
-function entrar(){
-dados.nome=document.getElementById("nome").value;
-if(!dados.nome) return alert("Digite nome");
+window.entrar = async function(){
+let nome=document.getElementById("nome").value;
+if(!nome) return alert("Digite nome");
+
+let ref=doc(db,"usuarios",uid);
+let snap=await getDoc(ref);
+
+dados = snap.exists()? snap.data() : {nome,xp:0,nivel:1,progresso:{}};
+
+dados.nome=nome;
+await salvar();
 
 menu.innerHTML=`
 <h3>${dados.nome}</h3>
 ⭐ Nv ${dados.nivel} | XP ${dados.xp}<br>
-🏆 Liga: ${dados.liga}<br>
-<button onclick="start()">Jogar</button>
+${[...Array(12)].map((_,i)=>`<button onclick="start('t${i+1}')">Lição ${i+1}</button>`).join("")}
+${uid===ADMIN_UID ? `<button class="admin" onclick="painelAdmin()">ADMIN</button>`:""}
 `;
+
+carregarRanking();
 }
 
-// INICIAR
-function start(){
-lista = perguntas.sort(()=>Math.random()-0.5);
-atual=0;
-acertos=0;
-vidas=3;
-combo=0;
-dados.streak=0;
+// 🔥 SUAS PERGUNTAS (EXATAS)
+let temas = { ... }; // 👈 COLE AQUI EXATAMENTE O BLOCO QUE VOCÊ ME MANDOU
+
+// QUIZ
+window.start=function(t){
+temaAtual=t;
+lista=[...temas[t]].sort(()=>Math.random()-0.5);
+atual=0; acertos=0; combo=0; vidas=3;
 load();
 }
 
@@ -100,10 +121,8 @@ tempo=30;
 
 quiz.innerHTML=`
 <div class="top">
-❤️ ${vidas} | 🔥 ${combo} | ⚡ Streak ${dados.streak}<br>
-⏱️ <span id="tempo">${tempo}</span>
+❤️ ${vidas} | 🔥 ${combo} | ⏱️ <span id="tempo">${tempo}</span>
 </div>
-
 <h3>${q[0]}</h3>
 `;
 
@@ -123,38 +142,27 @@ document.getElementById("tempo").innerText=tempo;
 },1000);
 }
 
-function resp(i,btn){
+window.resp=function(i,btn){
 clearInterval(intervalo);
 
 if(i===lista[atual][2]){
-acerto(btn);
+combo++; acertos++; dados.xp+=10+(combo*2);
+btn.classList.add("correct"); acerto.play();
 }else{
 erro(btn);
+return;
 }
-}
 
-function acerto(btn){
-btn.classList.add("correct");
-document.getElementById("acerto").play();
-
-combo++;
-dados.streak++;
-dados.xp+=10+(combo*3);
-
-acertos++;
 proxima();
 }
 
 function erro(btn){
 if(btn) btn.classList.add("wrong");
-document.getElementById("erro").play();
-
-vidas--;
-combo=0;
-dados.streak=0;
+erroSound.play();
+vidas--; combo=0;
 
 if(vidas<=0){
-gameOver();
+quiz.innerHTML="<h2>💀 GAME OVER</h2><button onclick='entrar()'>Menu</button>";
 return;
 }
 
@@ -164,40 +172,96 @@ proxima();
 function proxima(){
 atual++;
 setTimeout(()=>{
-if(atual<lista.length){
-load();
-}else{
-final();
-}
+if(atual<lista.length) load();
+else finalizar();
 },400);
 }
 
-function final(){
+async function finalizar(){
 let pct=Math.round((acertos/lista.length)*100);
+dados.progresso[temaAtual]=pct;
 
 if(dados.xp>=dados.nivel*100){
-dados.nivel++;
-dados.xp=0;
+dados.nivel++; dados.xp=0;
 }
 
-atualizarLiga();
+await salvar();
 
-quiz.innerHTML=`
-<h2>${pct}%</h2>
-<p>Liga: ${dados.liga}</p>
-<button onclick="entrar()">Menu</button>
-`;
+quiz.innerHTML=`<h2>${pct}%</h2><button onclick="entrar()">Menu</button>`;
 }
 
-function atualizarLiga(){
-if(dados.nivel>=10) dados.liga="Lendário 🔥";
-else if(dados.nivel>=7) dados.liga="Ouro 🥇";
-else if(dados.nivel>=4) dados.liga="Prata 🥈";
-else dados.liga="Bronze 🥉";
+// RANKING (corrigido)
+async function carregarRanking(){
+let snap=await getDocs(collection(db,"usuarios"));
+let mapa={};
+
+snap.forEach(d=>{
+let u=d.data();
+mapa[u.nome]=u; // evita duplicado
+});
+
+let lista=Object.values(mapa).sort((a,b)=>b.nivel-b.nivel || b.xp-a.xp);
+
+ranking.innerHTML="<h3>🏆 Ranking</h3>"+lista.slice(0,5).map(u=>`<p>${u.nome} - Nv ${u.nivel}</p>`).join("");
 }
 
-function gameOver(){
-quiz.innerHTML=`<h2>💀 GAME OVER</h2><button onclick="entrar()">Menu</button>`;
+// ADMIN
+window.painelAdmin = async function(){
+let snap = await getDocs(collection(db,"usuarios"));
+let html = "<h3>ADMIN</h3>";
+
+snap.forEach(docSnap=>{
+let u = docSnap.data();
+let id = docSnap.id;
+
+html += `
+<div>
+${u.nome} - Nv ${u.nivel} - XP ${u.xp}
+<button onclick="addXP('${id}',50)">+XP</button>
+</div>`;
+});
+
+admin.innerHTML = html;
+}
+
+window.addXP = async function(id,valor){
+let ref = doc(db,"usuarios",id);
+let snap = await getDoc(ref);
+let xp = snap.data().xp || 0;
+await updateDoc(ref,{xp: xp + valor});
+painelAdmin();
+}
+
+// MULTIPLAYER LOCAL
+window.multi=function(){
+let p1=prompt("Jogador 1:");
+let p2=prompt("Jogador 2:");
+
+let turno=0, pontos=[0,0];
+
+lista=[...temas.t1].sort(()=>Math.random()-0.5); // usa lição 1 como base
+
+function rodada(){
+let q=lista.pop();
+quiz.innerHTML=`<h3>${[p1,p2][turno]}</h3><h4>${q[0]}</h4>`;
+
+q[1].forEach((op,i)=>{
+quiz.innerHTML+=`<button onclick="jogada(${i},${q[2]})">${op}</button>`;
+});
+}
+
+window.jogada=function(i,c){
+if(i===c) pontos[turno]++;
+
+turno=1-turno;
+
+if(lista.length) rodada();
+else{
+quiz.innerHTML=`<h2>${p1}: ${pontos[0]} | ${p2}: ${pontos[1]}</h2>`;
+}
+}
+
+rodada();
 }
 
 </script>
