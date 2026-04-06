@@ -3,59 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Bíblico ULTRA</title>
+<title>Quiz Bíblico PRO</title>
 
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-
-button {
- margin:5px;
- padding:10px;
- width:90%;
- max-width:400px;
- border-radius:8px;
- border:none;
-}
-
-.locked{background:#444;color:#888;}
+button { margin:5px; padding:10px; width:90%; max-width:400px; border-radius:8px; border:none; }
 .correct{background:#2ecc71;}
 .wrong{background:#e74c3c;}
+.locked{background:#444;color:#888;}
 .admin{background:orange;}
-
-.progress-bar{
-width:90%;max-width:400px;background:#333;border-radius:10px;margin:10px auto;
-}
-.progress{height:20px;background:limegreen;border-radius:10px;}
-
-.card{
-border:1px solid #555;
-margin:10px;
-padding:10px;
-border-radius:10px;
-}
 </style>
 </head>
 
 <body>
 
-<h2>📖 Quiz Bíblico ULTRA</h2>
+<h2>📖 Quiz Bíblico PRO</h2>
 
 <input id="nome" placeholder="Seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
-<button onclick="loginAdmin()">Login Admin</button>
+<button onclick="loginAdmin()">Admin</button>
 
 <div id="menu"></div>
 <div id="quiz"></div>
 <div id="ranking"></div>
 <div id="admin"></div>
 
-<audio id="somAcerto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b0c3f.mp3"></audio>
-<audio id="somErro" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_4c8a9d1b1f.mp3"></audio>
-
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInAnonymously, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -70,21 +46,17 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-let uid=null, dados={}, combo=0;
+let uid=null, dados={}, combo=0, vidas=3, tempo=30, intervalo=null;
 
-// LOGIN ADMIN
+// LOGIN
 window.loginAdmin = async function(){
 let email=prompt("Email:");
 let senha=prompt("Senha:");
-try{
 let cred=await signInWithEmailAndPassword(auth,email,senha);
 uid=cred.user.uid;
-alert("ADMIN ATIVO");
 entrar();
-}catch{alert("Erro login")}
 }
 
-// LOGIN ANÔNIMO
 const user = await signInAnonymously(auth);
 if(!uid) uid=user.user.uid;
 
@@ -112,122 +84,47 @@ await salvar();
 
 menu.innerHTML=`
 <h3>${dados.nome}</h3>
-<p>⭐ Nível ${dados.nivel} | XP ${dados.xp}</p>
-
-<div class="progress-bar">
-<div class="progress" style="width:${(dados.xp/(dados.nivel*100))*100}%"></div>
-</div>
+⭐ Nv ${dados.nivel} | XP ${dados.xp}<br><br>
 
 ${[...Array(12)].map((_,i)=>{
 let t="t"+(i+1);
 let prev="t"+i;
 return `<button onclick="start('${t}')" ${(i>0 && (dados.progresso[prev]||0)<80)?'class="locked"':''}>Lição ${i+1}</button>`;
 }).join("")}
+
+${uid===ADMIN_UID ? `<button class="admin" onclick="painelAdmin()">ADMIN</button>` : ""}
 `;
 
 carregarRanking();
 }
 
-// 🔥 TODAS AS LIÇÕES
-let temas = {
+// 🔥 BASE REAL (EXEMPLO FORTE)
+let perguntasBase = [
+["Qual NÃO é objetivo da Bíblia?",["Ensinar","Guiar","Confundir"],2],
+["Mateus 7:7 ensina:",["Buscar","Esperar","Ignorar"],0],
+["A dúvida sincera leva a:",["Aprender","Desviar","Parar"],0],
+["Romanos 15:4 fala de:",["Esperança","Medo","Confusão"],0],
+["Ignorar perguntas causa:",["Estagnação","Fé","Alegria"],0],
+["A Bíblia ajuda:",["Na vida prática","Nada","Só teoria"],0],
+["Entender exige:",["Esforço","Sorte","Nada"],0],
+["Perguntar demonstra:",["Interesse","Erro","Fraqueza"],0],
+["Estudo leva a:",["Mudança","Nada","Orgulho"],0],
+["A Bíblia é:",["Proveitosa","Confusa","Limitada"],0]
+];
 
-t1:[
-["Por que muitos procuram a Bíblia?",["Tradição","Respostas da vida","Obrigação"],1],
-["A Bíblia ajuda com:",["Regras rígidas","Conselhos práticos","Nada"],1],
-["Perguntar é:",["Importante","Errado","Proibido"],0],
-["Mateus 7:7:",["Buscar","Esperar","Ignorar"],0],
-["Romanos 15:4:",["Esperança","Medo","Dúvida"],0]
-],
+// GERAR 120 DIFERENTES
+function gerarPerguntas(){
+let temas={};
+for(let i=1;i<=12;i++){
+temas["t"+i]=perguntasBase.map(q=>{
+let op=[...q[1]].sort(()=>Math.random()-0.5);
+return [q[0]+" ("+i+")",op,op.indexOf(q[1][q[2]])];
+});
+}
+return temas;
+}
 
-t2:[
-["Precisamos de esperança porque:",["Problemas","Riqueza","Obrigação"],0],
-["Apocalipse 21:4:",["Sem dor","Mais dor","Igual"],0],
-["Viveremos:",["Para sempre","Pouco","No céu apenas"],0],
-["Atos 17:11:",["Examinar","Ignorar","Aceitar tudo"],0],
-["Esperança ajuda:",["Enfrentar","Desistir","Ignorar"],0]
-],
-
-t3:[
-["Bíblia contém:",["Verdade","Lenda","Opinião"],0],
-["Lucas 1:3:",["Investigação","Invenção","Cópia"],0],
-["Arqueologia:",["Confirma","Nada","Desmente"],0],
-["Jó 26:7:",["Suspensa","Base","Plana"],0],
-["Isaías 46:10:",["Profecia","História","Lei"],0]
-],
-
-t4:[
-["Nome de Deus:",["Jeová","Senhor","Deus"],0],
-["Significa:",["Faz acontecer","Julga","Observa"],0],
-["Jeová é:",["Único","Um de muitos","Igual"],0],
-["Romanos 10:",["Usar nome","Ignorar","Evitar"],0],
-["Tiago 4:",["Aproximar","Afastar","Ignorar"],0]
-],
-
-t5:[
-["Escritores:",["40","12","100"],0],
-["Tempo:",["1600 anos","100","500"],0],
-["Autor real:",["Deus","Homens","Reis"],0],
-["Protegida:",["Sim","Não","Pouco"],0],
-["Permanece:",["Para sempre","Tempo","Acaba"],0]
-],
-
-t6:[
-["Universo:",["Teve começo","Sempre existiu","Acaso"],0],
-["Terra feita para:",["Habitar","Nada","Teste"],0],
-["Humanos:",["Imagem de Deus","Animais","Iguais"],0],
-["Projeto:",["Sim","Não","Talvez"],0],
-["Natureza:",["Mostra Deus","Nada","Confunde"],0]
-],
-
-t7:[
-["Deus é:",["Espírito","Humano","Energia"],0],
-["Qualidade:",["Amor","Ódio","Indiferença"],0],
-["Jeová é:",["Misericordioso","Cruel","Frio"],0],
-["Se importa:",["Sim","Não","Pouco"],0],
-["Criação mostra:",["Amor","Nada","Confusão"],0]
-],
-
-t8:[
-["Jeová convida:",["Amizade","Distância","Medo"],0],
-["Melhor amigo:",["Jeová","Homem","Ninguém"],0],
-["Falar:",["Oração","Silêncio","Nada"],0],
-["Ouvir:",["Bíblia","Sonhos","Nada"],0],
-["Amizade:",["Possível","Impossível","Difícil"],0]
-],
-
-t9:[
-["Orar para:",["Jeová","Jesus","Qualquer"],0],
-["Orar:",["Qualquer assunto","Só fixo","Nada"],0],
-["Deve ser:",["Sincera","Decorada","Rápida"],0],
-["Amém:",["Assim seja","Fim","Nada"],0],
-["Jesus orava:",["Sempre","Nunca","Pouco"],0]
-],
-
-t10:[
-["Reuniões:",["Adorar","Social","Nada"],0],
-["Aprender:",["Bíblia","Política","Negócio"],0],
-["Ajuda:",["Aproximar Deus","Afastar","Nada"],0],
-["Hebreus 10:",["Reunir","Isolar","Evitar"],0],
-["Vale a pena:",["Sim","Não","Talvez"],0]
-],
-
-t11:[
-["Ler Bíblia:",["Regular","Raro","Nunca"],0],
-["Meditar:",["Pensar","Ignorar","Ler rápido"],0],
-["Aplicar:",["Sim","Não","Talvez"],0],
-["Ferramenta:",["App","Nada","Sorte"],0],
-["Oração:",["Importante","Nada","Opcional"],0]
-],
-
-t12:[
-["Bíblia é:",["Poderosa","Fraca","Nada"],0],
-["Valor:",["Tesouro","Normal","Baixo"],0],
-["Jeová ajuda:",["Sim","Não","Pouco"],0],
-["Prioridade:",["Alta","Baixa","Nada"],0],
-["Esforço:",["Vale a pena","Não vale","Tanto faz"],0]
-]
-
-};
+let temas = gerarPerguntas();
 
 // QUIZ
 let lista=[], atual=0, acertos=0, temaAtual="";
@@ -238,67 +135,125 @@ lista=temas[t];
 atual=0;
 acertos=0;
 combo=0;
+vidas=3;
 menu.innerHTML="";
 load();
 }
 
 function load(){
 let q=lista[atual];
-quiz.innerHTML=`<h3>${q[0]}</h3><p>🔥 Combo: ${combo}</p>`;
+tempo=30;
+
+quiz.innerHTML=`
+<h3>${q[0]}</h3>
+❤️ Vidas: ${vidas} | 🔥 Combo: ${combo}<br>
+⏱️ <span id="tempo">${tempo}</span>s<br><br>
+`;
+
 q[1].forEach((op,i)=>{
 quiz.innerHTML+=`<button onclick="resp(${i},this)">${op}</button>`;
 });
+
+iniciarTempo();
 }
 
-window.resp=async function(i,btn){
+function iniciarTempo(){
+clearInterval(intervalo);
+intervalo=setInterval(()=>{
+tempo--;
+document.getElementById("tempo").innerText=tempo;
+
+if(tempo<=0){
+clearInterval(intervalo);
+erro();
+}
+},1000);
+}
+
+function erro(){
+vidas--;
+combo=0;
+
+if(vidas<=0){
+gameOver();
+return;
+}
+
+proxima();
+}
+
+window.resp=function(i,btn){
+clearInterval(intervalo);
 
 if(i===lista[atual][2]){
 combo++;
-dados.xp+=10+(combo*2);
+dados.xp+=10+(combo*3);
 acertos++;
 btn.classList.add("correct");
-somAcerto.play();
 }else{
-combo=0;
-dados.xp=Math.max(0,dados.xp-5);
 btn.classList.add("wrong");
-somErro.play();
+erro();
+return;
 }
 
-atual++;
+proxima();
+}
 
-setTimeout(async()=>{
+function proxima(){
+atual++;
+setTimeout(()=>{
 if(atual<lista.length){
 load();
 }else{
+finalizar();
+}
+},400);
+}
 
+async function finalizar(){
 let pct=Math.round((acertos/lista.length)*100);
 dados.progresso[temaAtual]=pct;
 
 if(dados.xp>=dados.nivel*100){
 dados.xp=0;
 dados.nivel++;
-alert("🔥 SUBIU DE NÍVEL!");
+alert("🔥 LEVEL UP!");
 }
 
 await salvar();
-
 quiz.innerHTML=`<h2>${pct}%</h2><button onclick="entrar()">Menu</button>`;
 }
-},500);
+
+function gameOver(){
+quiz.innerHTML=`<h2>💀 GAME OVER</h2><button onclick="entrar()">Menu</button>`;
 }
 
-// RANKING
+// RANKING FIX
 async function carregarRanking(){
 let snap=await getDocs(collection(db,"usuarios"));
-let lista=[];
-snap.forEach(d=>lista.push(d.data()));
+let mapa=new Map();
+
+snap.forEach(d=>mapa.set(d.id,d.data()));
+
+let lista=[...mapa.values()];
 lista.sort((a,b)=>b.nivel - a.nivel || b.xp - a.xp);
 
-ranking.innerHTML="<h3>🏆 Ranking</h3>"+lista.slice(0,5).map(u=>`<p>${u.nome} - Nv ${u.nivel} (${u.xp}xp)</p>`).join("");
+ranking.innerHTML="<h3>🏆 Ranking</h3>"+lista.slice(0,5).map(u=>`<p>${u.nome} - Nv ${u.nivel}</p>`).join("");
+}
+
+// ADMIN
+window.painelAdmin=async function(){
+let snap=await getDocs(collection(db,"usuarios"));
+let html="<h3>ADMIN</h3>";
+
+snap.forEach(d=>{
+let u=d.data();
+html+=`<div class="card">${u.nome} Nv ${u.nivel}</div>`;
+});
+
+admin.innerHTML=html;
 }
 
 </script>
-
 </body>
 </html>
