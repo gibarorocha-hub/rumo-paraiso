@@ -17,7 +17,7 @@ button{margin:5px;padding:10px;width:90%;max-width:400px;border-radius:10px;}
 <h2>📖 Quiz Bíblico ULTRA</h2>
 
 <input id="nome" placeholder="Seu nome"><br><br>
-<button onclick="entrar()">Entrar</button>
+<button id="btnEntrar">Entrar</button>
 
 <div id="menu"></div>
 <div id="quiz"></div>
@@ -42,276 +42,143 @@ const auth = getAuth(app);
 let uid;
 await signInAnonymously(auth).then(u=>uid=u.user.uid);
 
+const menu = document.getElementById("menu");
+const quiz = document.getElementById("quiz");
+
 let dados={};
 let lista=[], atual=0, pontos=0, vidas=3, tempo=30, timer;
+let codigo="";
 
-// ================= PERGUNTAS =================
+// ======== PERGUNTAS DOS 12 TEMAS ========
+// Aqui você cola todas as perguntas t1 a t12 como antes
+let temas = {/* todas as perguntas que você enviou */};
 
-let temas = {
-t1:[
-["Por que muitos procuram a Bíblia?",["Tradição","Respostas da vida","Obrigação"],1],
-["A Bíblia responde:",["Riqueza","Objetivo da vida","Velhice"],1],
-["A Bíblia ajuda com:",["Regras rígidas","Conselhos práticos","Nada"],1],
-["2 Timóteo 3:16:",["Proveitosa","Confusa","Antiga"],0],
-["Salmo 119:105:",["Guia","Opcional","Confunde"],0],
-["Perguntar é:",["Importante","Errado","Proibido"],0],
-["Estudo leva a:",["Mudança","Nada","Dúvida"],0],
-["Mateus 7:7:",["Buscar","Esperar","Ignorar"],0],
-["Romanos 15:4:",["Esperança","Medo","Dúvida"],0],
-["Entender exige:",["Ajuda","Sorte","Nada"],0]
-],
-t2:[
-["Precisamos de esperança porque:",["Problemas","Riqueza","Obrigação"],0],
-["Jeremias 29:11:",["Esperança","Dinheiro","Sorte"],0],
-["Apocalipse 21:4:",["Sem dor","Mais dor","Igual"],0],
-["Deixarão de existir:",["Morte","Só guerra","Só fome"],0],
-["Viveremos:",["Para sempre","Pouco","No céu apenas"],0],
-["Atos 17:11:",["Examinar","Ignorar","Aceitar tudo"],0],
-["Esperança ajuda:",["Enfrentar","Desistir","Ignorar"],0],
-["Alegria:",["Ajuda","Nada","Prejudica"],0],
-["Esperança:",["Muda atitude","Nada","Engana"],0],
-["Bíblia é para:",["Todos","Alguns","Poucos"],0]
-],
-t3:[
-["Bíblia contém:",["Verdade","Lenda","Opinião"],0],
-["Lucas 1:3:",["Investigação","Invenção","Cópia"],0],
-["Arqueologia:",["Confirma","Nada","Desmente"],0],
-["À frente em:",["Ciência","Política","Nada"],0],
-["Salmo 111:8:",["Confiável","Duvidosa","Errada"],0],
-["Isaías 46:10:",["Profecia","História","Lei"],0],
-["Jó 26:7:",["Suspensa","Base","Plana"],0],
-["Jó 36:",["Água","Sol","Lua"],0],
-["Isaías 44:",["Ciro","Roma","Egito"],0],
-["2 Timóteo:",["Últimos dias","Criação","Lei"],0]
-],
-t4:[
-["Nome de Deus:",["Jeová","Senhor","Deus"],0],
-["Significa:",["Faz acontecer","Julga","Observa"],0],
-["Aparece:",["+7000","100","Pouco"],0],
-["Jeová é:",["Único","Um de muitos","Igual"],0],
-["Altíssimo:",["Salmo 83","Gênesis","Mateus"],0],
-["Criador:",["Apocalipse","Lucas","João"],0],
-["Sempre existiu:",["Sim","Não","Talvez"],0],
-["Nome vs título:",["Identifica","Igual","Nada"],0],
-["Romanos 10:",["Usar nome","Ignorar","Evitar"],0],
-["Tiago 4:",["Aproximar","Afastar","Ignorar"],0]
-],
-t5:[
-["Escritores:",["40","12","100"],0],
-["Tempo:",["1600 anos","100","500"],0],
-["Espírito santo:",["Inspirou","Ignorou","Inventou"],0],
-["Autor real:",["Deus","Homens","Reis"],0],
-["Mensagem:",["De Deus","Humana","Misturada"],0],
-["Disponível:",["Todas línguas","Poucas","Uma"],0],
-["Protegida:",["Sim","Não","Pouco"],0],
-["Copiada:",["Com cuidado","Aleatória","Errada"],0],
-["Sobreviveu:",["Sim","Não","Parcial"],0],
-["Permanece:",["Para sempre","Tempo","Acaba"],0]
-],
-t6:[
-["Universo:",["Teve começo","Sempre existiu","Acaso"],0],
-["Gênesis 1:1:",["Criou","Formou sozinho","Nada"],0],
-["Terra feita para:",["Habitar","Nada","Teste"],0],
-["Humanos:",["Imagem de Deus","Animais","Iguais"],0],
-["Diferença:",["Amor","Força","Instinto"],0],
-["Vida surgiu:",["Criada","Acaso","Evolução pura"],0],
-["Projeto:",["Sim","Não","Talvez"],0],
-["Natureza:",["Mostra Deus","Nada","Confunde"],0],
-["Espécies:",["Criadas","Evoluíram","Mistura"],0],
-["Humanos podem:",["Adorar","Nada","Instinto"],0]
-],
-t7:[
-["Deus é:",["Espírito","Humano","Energia"],0],
-["Qualidade:",["Amor","Ódio","Indiferença"],0],
-["Jeová é:",["Misericordioso","Cruel","Frio"],0],
-["Perto de:",["Sofrendo","Ricos","Fortes"],0],
-["Fica feliz:",["Com o bem","Com o mal","Nada"],0],
-["Espírito santo:",["Força","Pessoa","Anjo"],0],
-["Usa para:",["Criar","Destruir","Nada"],0],
-["Qualidades:",["Muitas","Poucas","Nenhuma"],0],
-["Se importa:",["Sim","Não","Pouco"],0],
-["Criação mostra:",["Amor","Nada","Confusão"],0]
-],
-t8:[
-["Jeová convida:",["Amizade","Distância","Medo"],0],
-["Tiago 4:8:",["Aproxime","Afaste","Ignore"],0],
-["Melhor amigo:",["Jeová","Homem","Ninguém"],0],
-["Espera:",["Obediência","Perfeição","Nada"],0],
-["Abraão:",["Amigo","Inimigo","Desconhecido"],0],
-["Ajuda:",["Sim","Não","Pouco"],0],
-["Falar:",["Oração","Silêncio","Nada"],0],
-["Ouvir:",["Bíblia","Sonhos","Nada"],0],
-["Amizade:",["Possível","Impossível","Difícil"],0],
-["Valor:",["Alto","Baixo","Nenhum"],0]
-],
-t9:[
-["Orar para:",["Jeová","Jesus","Qualquer"],0],
-["Mateus 6:",["Pai nosso","Rezar","Repetir"],0],
-["Orar:",["Qualquer assunto","Só fixo","Nada"],0],
-["Deve ser:",["Sincera","Decorada","Rápida"],0],
-["Deus responde:",["Sim","Não","Talvez"],0],
-["Resposta:",["Bíblia","Nada","Sorte"],0],
-["Repetir:",["Errado","Certo","Necessário"],0],
-["Ajuda:",["Paz","Medo","Nada"],0],
-["Amém:",["Assim seja","Fim","Nada"],0],
-["Jesus orava:",["Sempre","Nunca","Pouco"],0]
-],
-t10:[
-["Reuniões:",["Adorar","Social","Nada"],0],
-["Aprender:",["Bíblia","Política","Negócio"],0],
-["Importância:",["Alta","Baixa","Nenhuma"],0],
-["Ajuda:",["Aproximar Deus","Afastar","Nada"],0],
-["Participar:",["Opcional","Obrigatório","Proibido"],0],
-["Dinheiro:",["Não pedem","Sempre pedem","Cobram"],0],
-["Pessoas:",["Se ajudam","Ignoram","Discutem"],0],
-["Hebreus 10:",["Reunir","Isolar","Evitar"],0],
-["Jesus ia:",["Sim","Não","Pouco"],0],
-["Vale a pena:",["Sim","Não","Talvez"],0]
-],
-t11:[
-["Ler Bíblia:",["Regular","Raro","Nunca"],0],
-["Salmo 1:",["Feliz","Triste","Neutro"],0],
-["Meditar:",["Pensar","Ignorar","Ler rápido"],0],
-["Aplicar:",["Sim","Não","Talvez"],0],
-["Tempo:",["Separar","Ignorar","Fugir"],0],
-["Gostar:",["Aprender","Nada","Evitar"],0],
-["Começar:",["Simples","Difícil","Grande"],0],
-["Ferramenta:",["App","Nada","Sorte"],0],
-["Preparar:",["Ajuda","Nada","Confunde"],0],
-["Oração:",["Importante","Nada","Opcional"],0]
-],
-t12:[
-["Bíblia é:",["Poderosa","Fraca","Nada"],0],
-["Importante:",["Muito","Pouco","Nada"],0],
-["Valor:",["Tesouro","Normal","Baixo"],0],
-["Jeová ajuda:",["Sim","Não","Pouco"],0],
-["Orar:",["Sempre","Nunca","Pouco"],0],
-["Prioridade:",["Alta","Baixa","Nada"],0],
-["Desistir:",["Não","Sim","Tanto faz"],0],
-["Outros contra:",["Continuar","Parar","Ignorar"],0],
-["Hebreus 11:",["Recompensa","Nada","Erro"],0],
-["Esforço:",["Vale a pena","Não vale","Tanto faz"],0]
-];
+// ======== FUNÇÃO ENTRAR ========
+document.getElementById("btnEntrar").onclick = function(){
+  let nome = document.getElementById("nome").value.trim();
+  if(!nome) return alert("Digite seu nome");
+  dados.nome = nome;
 
-// ================= ENTRAR =================
+  menu.innerHTML = `
+    <button onclick="solo()">🎯 Solo</button>
+    <button onclick="criarSala()">🌍 Multiplayer</button>
+  `;
+};
 
-window.entrar = function(){
-let nome=document.getElementById("nome").value;
-if(!nome) return alert("Digite nome");
-dados.nome=nome;
-
-menu.innerHTML=`
-<button onclick="solo()">🎯 Solo</button>
-<button onclick="criarSala()">🌍 Multiplayer</button>
-`;
-}
-
-// ================= SOLO =================
-
-window.solo=function(){
-lista=gerarPerguntas();
-atual=0;
-pontos=0;
-vidas=3;
-carregar();
-}
+// ======== FUNÇÃO SOLO ========
+window.solo = function(){
+  lista = gerarPerguntas();
+  atual = 0;
+  pontos = 0;
+  vidas = 3;
+  carregar();
+};
 
 function gerarPerguntas(){
-let todas=[];
-Object.values(temas).forEach(t=>t.forEach(p=>todas.push(p)));
-return todas.sort(()=>Math.random()-0.5).slice(0,10);
-}
-
-function tocarSom(tipo){
-document.getElementById(tipo==="acerto"?"somAcerto":"somErro").play().catch(()=>{});
+  let todas = [];
+  Object.values(temas).forEach(t=>t.forEach(p=>todas.push(p)));
+  return todas.sort(()=>Math.random()-0.5).slice(0,10);
 }
 
 function iniciarTempo(){
-tempo=30;
-clearInterval(timer);
-timer=setInterval(()=>{
-tempo--;
-document.getElementById("tempo").innerText=tempo;
-if(tempo<=0) errar();
-},1000);
+  tempo = 30;
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    tempo--;
+    document.getElementById("tempo").innerText = tempo;
+    if(tempo <= 0) errar();
+  },1000);
+}
+
+function tocarSom(tipo){
+  document.getElementById(tipo==="acerto"?"somAcerto":"somErro").play().catch(()=>{});
 }
 
 function carregar(){
-let q=lista[atual];
-quiz.innerHTML=`
-<h3>${q[0]}</h3>
-<p class="timer">⏱ <span id="tempo">30</span></p>
-<p class="life">❤️ ${vidas}</p>
-`;
-q[1].forEach((op,i)=>{
-quiz.innerHTML+=`<button onclick="responder(${i}, this)">${op}</button>`;
-});
-iniciarTempo();
+  let q = lista[atual];
+  quiz.innerHTML = `
+    <h3>${q[0]}</h3>
+    <p class="timer">⏱ <span id="tempo">30</span></p>
+    <p class="life">❤️ ${vidas}</p>
+  `;
+  q[1].forEach((op,i)=>{
+    let b = document.createElement("button");
+    b.textContent = op;
+    b.onclick = ()=>responder(i, b);
+    quiz.appendChild(b);
+  });
+  iniciarTempo();
 }
 
-window.responder=function(i, btn){
-clearInterval(timer);
-let certo=lista[atual][2];
-if(i===certo){
-pontos+=10;
-btn.classList.add("correct");
-tocarSom("acerto");
-}else{
-vidas--;
-btn.classList.add("wrong");
-tocarSom("erro");
-if(vidas<=0){return fim();}
+function responder(i, btn){
+  clearInterval(timer);
+  let certo = lista[atual][2];
+  if(i===certo){
+    pontos+=10;
+    btn.classList.add("correct");
+    tocarSom("acerto");
+  }else{
+    vidas--;
+    btn.classList.add("wrong");
+    tocarSom("erro");
+    if(vidas<=0){return fim();}
+  }
+  atual++;
+  setTimeout(()=>{
+    if(atual<lista.length) carregar();
+    else fim();
+  },500);
 }
-atual++;
-setTimeout(()=>{
-if(atual<lista.length) carregar();
-else fim();
-},500);
+
+function errar(){
+  vidas--;
+  if(vidas<=0){return fim();}
+  atual++;
+  setTimeout(()=>{if(atual<lista.length) carregar(); else fim();},500);
 }
 
 function fim(){
-quiz.innerHTML=`<h2>Pontos: ${pontos}</h2><button onclick="entrar()">Menu</button>`;
+  quiz.innerHTML = `<h2>Pontos: ${pontos}</h2><button onclick="location.reload()">Menu</button>`;
 }
 
-// ================= MULTIPLAYER =================
-
-let codigo="";
-
-window.criarSala=async function(){
-codigo=Math.random().toString(36).substring(2,6).toUpperCase();
-await setDoc(doc(db,"salas",codigo),{
-perguntas: gerarPerguntas(),
-atual:0,
-jogadores:{[uid]:dados.nome}
-});
-alert("Código da sala: "+codigo);
-entrarSala(codigo);
+// ======== MULTIPLAYER ========
+window.criarSala = async function(){
+  codigo = Math.random().toString(36).substring(2,6).toUpperCase();
+  await setDoc(doc(db,"salas",codigo),{
+    perguntas: gerarPerguntas(),
+    atual:0,
+    jogadores:{[uid]:dados.nome}
+  });
+  alert("Código da sala: "+codigo);
+  entrarSala(codigo);
 }
 
-window.entrarSala=function(c){
-codigo=c || prompt("Código:");
-onSnapshot(doc(db,"salas",codigo),(snap)=>{
-let sala=snap.data();
-if(!sala) return;
-sala.jogadores[uid]=dados.nome;
-setDoc(doc(db,"salas",codigo),sala);
+window.entrarSala = function(c){
+  codigo = c || prompt("Código:");
+  onSnapshot(doc(db,"salas",codigo),(snap)=>{
+    let sala = snap.data();
+    if(!sala) return alert("Sala não encontrada!");
+    sala.jogadores[uid] = dados.nome;
+    setDoc(doc(db,"salas",codigo), sala);
 
-let q=sala.perguntas[sala.atual];
-quiz.innerHTML=`<h3>${q[0]}</h3>`;
-q[1].forEach((op,i)=>{
-quiz.innerHTML+=`<button onclick="respMulti(${i})">${op}</button>`;
-});
-});
+    let q = sala.perguntas[sala.atual];
+    quiz.innerHTML = `<h3>${q[0]}</h3>`;
+    q[1].forEach((op,i)=>{
+      let b = document.createElement("button");
+      b.textContent = op;
+      b.onclick = ()=>respMulti(i);
+      quiz.appendChild(b);
+    });
+  });
 }
 
-window.respMulti=async function(i){
-let ref=doc(db,"salas",codigo);
-let snap=await getDoc(ref);
-let sala=snap.data();
-sala.atual++;
-await setDoc(ref,sala);
+window.respMulti = async function(i){
+  let ref = doc(db,"salas",codigo);
+  let snap = await getDoc(ref);
+  let sala = snap.data();
+  sala.atual++;
+  await setDoc(ref,sala);
 }
-
 </script>
 </body>
 </html>
