@@ -18,14 +18,21 @@ button {
 }
 
 .locked{background:#444;color:#888;}
-.correct{background:green;}
-.wrong{background:red;}
+.correct{background:#2ecc71;}
+.wrong{background:#e74c3c;}
 .admin{background:orange;}
 
 .progress-bar{
 width:90%;max-width:400px;background:#333;border-radius:10px;margin:10px auto;
 }
 .progress{height:20px;background:limegreen;border-radius:10px;}
+
+.card{
+border:1px solid #555;
+margin:10px;
+padding:10px;
+border-radius:10px;
+}
 </style>
 </head>
 
@@ -42,13 +49,14 @@ width:90%;max-width:400px;background:#333;border-radius:10px;margin:10px auto;
 <div id="ranking"></div>
 <div id="admin"></div>
 
-<audio id="somAcerto" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
-<audio id="somErro" src="https://actions.google.com/sounds/v1/cartoon/boing.ogg"></audio>
+<!-- sons melhores -->
+<audio id="somAcerto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b0c3f.mp3"></audio>
+<audio id="somErro" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_4c8a9d1b1f.mp3"></audio>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInAnonymously, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -98,8 +106,10 @@ let snap=await getDoc(ref);
 if(snap.exists()){
 dados=snap.data();
 }else{
-dados={nome,xp:0,nivel:1,progresso:{},conquistas:[]};
+dados={nome,xp:0,nivel:1,progresso:{},conquistas:[],ultimoAcesso:""};
 }
+
+dados.ultimoAcesso = new Date().toLocaleString();
 
 await salvar();
 
@@ -123,7 +133,7 @@ ${uid===ADMIN_UID ? `<button class="admin" onclick="painelAdmin()">👑 ADMIN</b
 carregarRanking();
 }
 
-// 🔥 PERGUNTAS
+// PERGUNTAS (LIÇÃO 1 REAL)
 
 let temas = {
 
@@ -132,38 +142,38 @@ t1:[
 ["Segundo a introdução da lição, por que muitas pessoas procuram a Bíblia?", 
 ["Por tradição religiosa","Porque ela responde às perguntas mais importantes da vida","Porque é obrigatória"],1],
 
-["Qual dos assuntos abaixo a Bíblia ajuda a entender, segundo o início da lição?", 
-["Somente religião","Vida, sofrimento e futuro","Apenas história antiga"],1],
+["Qual dos assuntos abaixo a Bíblia ajuda a entender?", 
+["Somente religião","Vida, sofrimento e futuro","Apenas história"],1],
 
-["De acordo com a lição, preocupar-se com sustento e família mostra que:", 
-["São questões espirituais irrelevantes","São preocupações reais do dia a dia","São falta de fé"],1],
+["A Bíblia ajuda no dia a dia com:", 
+["Regras rígidas","Conselhos práticos","Nada"],1],
 
-["Segundo o parágrafo 1, qual dessas perguntas a Bíblia responde?", 
-["Como enriquecer rápido","Qual é o objetivo da vida","Como evitar envelhecer"],1],
+["Qual pergunta a Bíblia responde?", 
+["Como enriquecer","Objetivo da vida","Como não envelhecer"],1],
 
-["Por que não é errado fazer perguntas como 'por que sofremos'?", 
-["Porque são comuns e importantes","Porque Deus exige","Porque não têm resposta"],0],
+["Por que fazer perguntas não é errado?", 
+["São importantes","São proibidas","Não têm resposta"],0],
 
-["Segundo o parágrafo 2, a Bíblia ajuda no dia a dia principalmente:", 
-["Com regras rígidas","Com conselhos práticos para viver melhor","Com previsões políticas"],1],
+["A Bíblia é proveitosa para:", 
+["Ensinar","Confundir","Ignorar"],0],
 
-["O texto de 2 Timóteo 3:16 mostra que a Bíblia é:", 
-["Apenas simbólica","Proveitosa para ensinar","Difícil de entender"],1],
+["Salmo 119:105 mostra que a Bíblia:", 
+["Guia a vida","É opcional","Confunde"],0],
 
-["A comparação com a lanterna em Salmo 119:105 ensina que a Bíblia:", 
-["Ilumina decisões e direção na vida","Serve apenas para leitura","É opcional"],0],
+["O vídeo mostrou que estudar a Bíblia:", 
+["Ajuda a encontrar respostas","Não ajuda","Confunde"],0],
 
-["No vídeo da professora, o principal benefício de estudar a Bíblia foi:", 
-["Ganhar dinheiro","Encontrar respostas para suas dúvidas","Aprender história"],1],
+["Mateus 7:7 ensina:", 
+["Buscar respostas","Esperar parado","Ignorar"],0],
 
-["Segundo Mateus 7:7, o que a Bíblia incentiva?", 
-["Esperar respostas sem agir","Buscar respostas ativamente","Ignorar dúvidas"],1]
+["Romanos 15:4 mostra que a Bíblia traz:", 
+["Consolo e esperança","Medo","Dúvida"],0]
 
 ]
 
 };
 
-// outras lições ainda bloqueadas
+// repetir temporariamente
 for(let i=2;i<=12;i++) temas["t"+i]=temas.t1;
 
 // QUIZ
@@ -230,35 +240,79 @@ async function carregarRanking(){
 let snap=await getDocs(collection(db,"usuarios"));
 let lista=[];
 snap.forEach(d=>lista.push(d.data()));
-lista.sort((a,b)=>b.xp-a.xp);
+lista.sort((a,b)=>b.nivel - a.nivel || b.xp - a.xp);
 
-ranking.innerHTML="<h3>🏆 Ranking</h3>"+lista.slice(0,5).map(u=>`<p>${u.nome} - ${u.xp}</p>`).join("");
+ranking.innerHTML="<h3>🏆 Ranking</h3>"+lista.slice(0,5).map(u=>`<p>${u.nome} - Nv ${u.nivel} (${u.xp}xp)</p>`).join("");
 }
 
-// ADMIN
-window.painelAdmin=async function(){
-let snap=await getDocs(collection(db,"usuarios"));
-let html="<h3>👑 ADMIN</h3>";
+// ADMIN COMPLETO
+window.painelAdmin = async function(){
+
+let snap = await getDocs(collection(db,"usuarios"));
+let html = "<h3>👑 ADMIN COMPLETO</h3>";
 
 snap.forEach(docSnap=>{
-let u=docSnap.data();
-let id=docSnap.id;
+let u = docSnap.data();
+let id = docSnap.id;
 
-html+=`
-<div>
-<b>${u.nome}</b><br>
-XP:${u.xp} | Nv:${u.nivel}<br>
-Progresso:${JSON.stringify(u.progresso)}<br>
-<button onclick="darXP('${id}')">+XP</button>
-</div>`;
-});
-
-admin.innerHTML=html;
+let progressoHTML = "";
+for(let i=1;i<=12;i++){
+let t="t"+i;
+let valor = u.progresso?.[t] || 0;
+progressoHTML += `L${i}: ${valor}% | `;
 }
 
-window.darXP=async function(id){
-await updateDoc(doc(db,"usuarios",id),{xp:100});
+html += `
+<div class="card">
+<b>${u.nome}</b><br>
+UID: ${id}<br>
+⭐ Nível: ${u.nivel}<br>
+🔥 XP: ${u.xp}<br>
+🕒 Último acesso: ${u.ultimoAcesso || "-"}<br>
+📊 ${progressoHTML}<br><br>
+
+<button onclick="addXP('${id}',50)">+50 XP</button>
+<button onclick="addXP('${id}',-50)">-50 XP</button>
+<button onclick="uparNivel('${id}')">⬆️ Nível</button>
+<button onclick="resetar('${id}')">🔄 Resetar</button>
+<button onclick="excluir('${id}')" style="background:red">❌ Excluir</button>
+</div>
+`;
+});
+
+admin.innerHTML = html;
+}
+
+// FUNÇÕES ADMIN
+window.addXP = async function(id,valor){
+let ref = doc(db,"usuarios",id);
+let snap = await getDoc(ref);
+let atual = snap.data().xp || 0;
+await updateDoc(ref,{xp: Math.max(0, atual + valor)});
 painelAdmin();
+}
+
+window.uparNivel = async function(id){
+let ref = doc(db,"usuarios",id);
+let snap = await getDoc(ref);
+let nivel = snap.data().nivel || 1;
+await updateDoc(ref,{nivel: nivel + 1});
+painelAdmin();
+}
+
+window.resetar = async function(id){
+await updateDoc(doc(db,"usuarios",id),{
+progresso:{},
+xp:0
+});
+painelAdmin();
+}
+
+window.excluir = async function(id){
+if(confirm("Excluir usuário?")){
+await deleteDoc(doc(db,"usuarios",id));
+painelAdmin();
+}
 }
 
 </script>
