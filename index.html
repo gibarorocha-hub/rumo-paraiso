@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Bíblico</title>
+<title>Quiz Bíblico PRO</title>
 
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
@@ -21,12 +21,18 @@ button {
 .correct{background:green;}
 .wrong{background:red;}
 .admin{background:orange;}
+.userBox{
+border:1px solid #555;
+margin:10px;
+padding:10px;
+border-radius:10px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>📖 Quiz Bíblico</h2>
+<h2>📖 Quiz Bíblico PRO</h2>
 
 <input id="nome" placeholder="Seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
@@ -40,7 +46,7 @@ button {
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInAnonymously, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
@@ -49,7 +55,6 @@ const firebaseConfig = {
   projectId: "quiz-biblico-e1362"
 };
 
-// ✅ SEU UID JÁ CONFIGURADO
 const ADMIN_UID = "Pmbm5BqKNRXu3gXI4EPj5LrddNC3";
 
 const app = initializeApp(firebaseConfig);
@@ -61,19 +66,16 @@ let dados = {};
 
 // LOGIN ADMIN
 window.loginAdmin = async function(){
-
 let email = prompt("Email:");
 let senha = prompt("Senha:");
 
 try{
 let cred = await signInWithEmailAndPassword(auth,email,senha);
 uid = cred.user.uid;
-
-alert("Logado como ADMIN");
+alert("ADMIN ATIVO");
 entrar();
-
 }catch(e){
-alert("Erro no login");
+alert("Erro login");
 }
 }
 
@@ -81,9 +83,8 @@ alert("Erro no login");
 const user = await signInAnonymously(auth);
 if(!uid) uid = user.user.uid;
 
-// SALVAR
 async function salvar(){
-  await setDoc(doc(db,"usuarios",uid),dados);
+await setDoc(doc(db,"usuarios",uid),dados);
 }
 
 // ENTRAR
@@ -98,11 +99,12 @@ let snap = await getDoc(ref);
 if(snap.exists()){
 dados = snap.data();
 }else{
-dados = {nome,xp:0,nivel:1,progresso:{}};
+dados = {nome,xp:0,nivel:1,progresso:{},ultimoAcesso:new Date().toLocaleString()};
 await salvar();
 }
 
-if(!dados.progresso) dados.progresso = {};
+dados.ultimoAcesso = new Date().toLocaleString();
+await salvar();
 
 menu.innerHTML = `
 <h3>${dados.nome}</h3>
@@ -114,29 +116,29 @@ let prev="t"+i;
 return `<button onclick="start('${t}')" ${(i>0 && (dados.progresso[prev]||0)<80)?'class="locked"':''}>Lição ${i+1}</button>`;
 }).join("")}
 
-${uid===ADMIN_UID ? `<button class="admin" onclick="painelAdmin()">PAINEL ADMIN</button>` : ""}
+${uid===ADMIN_UID ? `<button class="admin" onclick="painelAdmin()">👑 ADMIN</button>` : ""}
 `;
 
 carregarRanking();
 }
 
-// PERGUNTAS
-let temas = {};
+// PERGUNTAS HARD
+let temas = {
+t1:[
+["Segundo João 17:3, o que realmente envolve 'conhecer a Deus'?",["Saber que Ele existe","Ter relacionamento e aplicar","Apenas estudar"],1],
+["Salmo 37:29 indica que os justos viverão:",["No céu apenas","Para sempre na terra","Por tempo limitado"],1],
+["Se alguém estuda mas não aplica, qual erro segundo Tiago?",["Nenhum","Autoengano","Excesso de fé"],1],
+["Romanos 12:2 sugere mudança em:",["Aparência","Mentalidade","Rotina externa"],1],
+["Mateus 7:13 mostra que a maioria:",["Escolhe certo","Escolhe fácil","Não escolhe"],1],
+["Hebreus 11:6 mostra que fé precisa:",["Provas físicas","Ação","Sorte"],1],
+["Provérbios 2 destaca:",["Busca ativa","Esperar","Ignorar"],0],
+["João 13:34 mostra amor:",["Opcional","Central","Secundário"],1],
+["Eclesiastes 12:13 resume vida como:",["Liberdade total","Temer Deus","Buscar prazer"],1],
+["Aplicar ensino bíblico gera:",["Mudança gradual","Nada","Confusão"],0]
+]
+};
 
-for(let i=1;i<=12;i++){
-temas["t"+i]=[
-["Segundo João 17:3, o que leva à vida eterna?",["Conhecer a Deus","Dinheiro","Sorte"],0],
-["Salmo 37:29 fala sobre:",["Vida eterna na terra","Fim da terra","Só céu"],0],
-["O que Tiago 4:8 ensina?",["Deus se aproxima","Nada acontece","Castigo"],0],
-["Provérbios 2:5 mostra necessidade de:",["Esforço","Sorte","Ignorar"],0],
-["Mateus 7 fala de caminho:",["Apertado","Fácil","Qualquer"],0],
-["Hebreus 11:6 ensina:",["Fé essencial","Nada importa","Tudo fácil"],0],
-["Romanos 12:2 fala de:",["Mudar mente","Seguir mundo","Ignorar"],0],
-["João 13:34 ensina:",["Amor","Dinheiro","Poder"],0],
-["Eclesiastes 12:13 resume:",["Temer Deus","Viver livre","Ignorar"],0],
-["Aplicar Bíblia resulta em:",["Melhora","Nada","Piora"],0]
-];
-}
+for(let i=2;i<=12;i++) temas["t"+i]=temas.t1;
 
 let lista=[], atual=0, acertos=0, temaAtual="";
 
@@ -151,7 +153,7 @@ load();
 
 function load(){
 let q = lista[atual];
-quiz.innerHTML = `<h3>${q[0]}</h3>`;
+quiz.innerHTML = `<h3>${q[0]}</h3><p>${atual+1}/10</p>`;
 q[1].forEach((op,i)=>{
 quiz.innerHTML += `<button onclick="resp(${i},this)">${op}</button>`;
 });
@@ -161,7 +163,7 @@ window.resp = async function(i,btn){
 
 if(i===lista[atual][2]){
 acertos++;
-dados.xp+=10;
+dados.xp+=15;
 btn.classList.add("correct");
 }else{
 btn.classList.add("wrong");
@@ -174,10 +176,10 @@ if(atual<lista.length){
 load();
 }else{
 
-let pct = Math.round((acertos/lista.length)*100);
+let pct = Math.round((acertos/10)*100);
 dados.progresso[temaAtual]=pct;
 
-if(dados.xp>=dados.nivel*100){
+if(dados.xp>=dados.nivel*120){
 dados.xp=0;
 dados.nivel++;
 }
@@ -186,8 +188,48 @@ await salvar();
 
 quiz.innerHTML=`<h2>${pct}%</h2><button onclick="entrar()">Menu</button>`;
 }
-},500);
+},600);
+}
 
+// ADMIN AVANÇADO
+window.painelAdmin = async function(){
+
+let snap = await getDocs(collection(db,"usuarios"));
+let html="<h3>👑 PAINEL ADMIN</h3>";
+
+snap.forEach(docSnap=>{
+let u=docSnap.data();
+let id=docSnap.id;
+
+html+=`
+<div class="userBox">
+<b>${u.nome}</b><br>
+XP: ${u.xp} | Nível: ${u.nivel}<br>
+Último acesso: ${u.ultimoAcesso || "—"}<br>
+Progresso: ${JSON.stringify(u.progresso)}<br>
+
+<button onclick="darXP('${id}')">+50 XP</button>
+<button onclick="resetar('${id}')">Resetar</button>
+</div>
+`;
+});
+
+admin.innerHTML = html;
+}
+
+// FUNÇÕES ADMIN
+window.darXP = async function(id){
+let ref = doc(db,"usuarios",id);
+await updateDoc(ref,{xp:50});
+alert("XP atualizado");
+painelAdmin();
+}
+
+window.resetar = async function(id){
+let ref = doc(db,"usuarios",id);
+await updateDoc(ref,{progresso:{}});
+alert("Resetado");
+painelAdmin();
 }
 
 // RANKING
@@ -197,21 +239,7 @@ let lista=[];
 snap.forEach(d=>lista.push(d.data()));
 lista.sort((a,b)=>b.xp-a.xp);
 
-ranking.innerHTML="<h3>Ranking</h3>"+lista.slice(0,5).map(u=>`<p>${u.nome} - ${u.xp}</p>`).join("");
-}
-
-// ADMIN
-window.painelAdmin = async function(){
-
-let snap = await getDocs(collection(db,"usuarios"));
-let html="<h3>👑 ADMIN</h3>";
-
-snap.forEach(doc=>{
-let u=doc.data();
-html+=`<p>${u.nome} | XP:${u.xp} | Nível:${u.nivel}</p>`;
-});
-
-admin.innerHTML = html;
+ranking.innerHTML="<h3>🏆 Ranking</h3>"+lista.slice(0,5).map(u=>`<p>${u.nome} - ${u.xp}</p>`).join("");
 }
 
 </script>
