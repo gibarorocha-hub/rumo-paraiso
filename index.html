@@ -3,56 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Bíblico ULTRA PRO</title>
+<title>Quiz Bíblico ULTRA</title>
 
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-
-button {
- margin:5px;
- padding:10px;
- width:90%;
- max-width:400px;
- border-radius:8px;
- border:none;
- font-weight:bold;
-}
-
+button { margin:5px; padding:10px; width:90%; max-width:400px; border-radius:8px; border:none; }
+.locked{background:#444;color:#888;}
 .correct{background:#2ecc71;}
 .wrong{background:#e74c3c;}
 .admin{background:orange;}
-
-.top{margin:10px;padding:10px;border:1px solid #555;border-radius:10px;}
-.barra{background:#333;height:10px;border-radius:10px;overflow:hidden;margin-top:5px;}
-.barraTempo{height:10px;background:red;width:100%;}
+.timer{color:orange;}
+.life{color:red;}
 </style>
 </head>
 
 <body>
 
-<h2>📖 Quiz Bíblico ULTRA PRO</h2>
+<h2>📖 Quiz Bíblico ULTRA</h2>
 
 <input id="nome" placeholder="Seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
-<button onclick="loginAdmin()">Admin</button>
-<button onclick="multi()">👥 Multiplayer</button>
+<button onclick="loginAdmin()">Login Admin</button>
 
 <div id="menu"></div>
 <div id="quiz"></div>
 <div id="ranking"></div>
 <div id="admin"></div>
 
-<audio id="acerto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b0c3f.mp3"></audio>
-<audio id="erro" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_4c8a9d1b1f.mp3"></audio>
-
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { getAuth, signInAnonymously, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
- apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
+ apiKey: "AIzaSy...",
  authDomain: "quiz-biblico-e1362.firebaseapp.com",
  projectId: "quiz-biblico-e1362"
 };
@@ -63,267 +48,219 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-let uid=null, dados={}, combo=0;
-let vidas=3, tempo=30, intervalo;
-let lista=[], atual=0, acertos=0, temaAtual="";
+let uid=null, dados={}, vidas=3, tempo=30, timer;
 
-// shuffle
-function shuffle(a){ return a.sort(()=>Math.random()-0.5); }
+// LOGIN
+const user = await signInAnonymously(auth);
+uid=user.user.uid;
 
-// login
+// ADMIN
 window.loginAdmin = async function(){
 let email=prompt("Email:");
 let senha=prompt("Senha:");
 let cred=await signInWithEmailAndPassword(auth,email,senha);
 uid=cred.user.uid;
-alert("ADMIN");
-entrar();
+alert("ADMIN ATIVO");
 }
 
-const user = await signInAnonymously(auth);
-if(!uid) uid=user.user.uid;
+// SALVAR
+async function salvar(){ await setDoc(doc(db,"usuarios",uid),dados); }
 
-async function salvar(){
-await setDoc(doc(db,"usuarios",uid),dados);
-}
-
-// entrar
+// ENTRAR
 window.entrar = async function(){
 let nome=document.getElementById("nome").value;
 if(!nome) return alert("Digite nome");
 
-let ref=doc(db,"usuarios",uid);
-let snap=await getDoc(ref);
+let snap=await getDoc(doc(db,"usuarios",uid));
+dados = snap.exists()?snap.data():{nome,xp:0,nivel:1,progresso:{}};
 
-dados = snap.exists()? snap.data() : {nome,xp:0,nivel:1,progresso:{}};
 dados.nome=nome;
-
 await salvar();
 
 menu.innerHTML=`
-<h3>${dados.nome}</h3>
-⭐ Nv ${dados.nivel} | XP ${dados.xp}<br>
-${[...Array(12)].map((_,i)=>`<button onclick="start('t${i+1}')">Lição ${i+1}</button>`).join("")}
+<h3>${nome}</h3>
+<button onclick="modoSolo()">🎯 Solo</button>
+<button onclick="criarSala()">🌍 Criar Sala</button>
+<button onclick="entrarSala()">🔑 Entrar Sala</button>
 ${uid===ADMIN_UID?`<button class="admin" onclick="painelAdmin()">ADMIN</button>`:""}
 `;
 
 carregarRanking();
 }
 
-// perguntas (SUAS)
+// 📚 PERGUNTAS (AS SUAS 12 LIÇÕES COMPLETAS)
 let temas = {
-// 👉 cola aqui o bloco completo que você mandou (t1 até t12)
-// NÃO ALTERA NADA
+// 👉 COLE AQUI EXATAMENTE O BLOCO QUE VOCÊ MANDOU (t1 até t12)
 };
 
-// start
-window.start=function(t){
-temaAtual=t;
-lista=shuffle([...temas[t]]);
-atual=0; acertos=0; combo=0; vidas=3;
-proxima();
+// 🎲 GERAR 10 ALEATÓRIAS
+function perguntasAleatorias(){
+let todas=[];
+Object.values(temas).forEach(t=>t.forEach(p=>todas.push(p)));
+return todas.sort(()=>Math.random()-0.5).slice(0,10);
 }
 
-// tempo
-function iniciarTempo(){
-clearInterval(intervalo);
+// ================= SOLO =================
+let lista=[], atual=0, pontos=0;
+
+window.modoSolo=function(){
+lista=perguntasAleatorias();
+atual=0;
+vidas=3;
+pontos=0;
+load();
+}
+
+function iniciarTimer(){
 tempo=30;
-
-intervalo=setInterval(()=>{
+clearInterval(timer);
+timer=setInterval(()=>{
 tempo--;
-document.getElementById("tempo").innerText=tempo;
-document.getElementById("barraTempo").style.width=(tempo/30*100)+"%";
-
-if(tempo<=0){
-clearInterval(intervalo);
-perdeVida();
-}
+document.getElementById("timer").innerText="⏱ "+tempo;
+if(tempo<=0){ perderVida(); }
 },1000);
 }
 
-// pergunta
-function proxima(){
-
-if(vidas<=0){
-quiz.innerHTML="<h2>💀 GAME OVER</h2><button onclick='entrar()'>Menu</button>";
-return;
+function perderVida(){
+clearInterval(timer);
+vidas--;
+if(vidas<=0) fim();
+else load();
 }
 
-if(atual>=lista.length){
-finalizar();
-return;
-}
-
+function load(){
 let q=lista[atual];
-
 quiz.innerHTML=`
-<div class="top">
-❤️ ${vidas} | 🔥 ${combo} | ⏱️ <span id="tempo">30</span>
-<div class="barra"><div id="barraTempo" class="barraTempo"></div></div>
-</div>
 <h3>${q[0]}</h3>
+<p class="timer" id="timer">⏱ 30</p>
+<p class="life">❤️ ${vidas}</p>
 `;
-
 q[1].forEach((op,i)=>{
-quiz.innerHTML+=`<button onclick="resp(${i},this)">${op}</button>`;
+quiz.innerHTML+=`<button onclick="resp(${i})">${op}</button>`;
+});
+iniciarTimer();
+}
+
+window.resp=function(i){
+clearInterval(timer);
+
+if(i===lista[atual][2]) pontos+=10;
+else perderVida();
+
+atual++;
+
+setTimeout(()=>{
+if(atual<lista.length) load();
+else fim();
+},500);
+}
+
+function fim(){
+quiz.innerHTML=`<h2>Pontos: ${pontos}</h2><button onclick="entrar()">Menu</button>`;
+}
+
+// ================= MULTIPLAYER =================
+
+let salaCodigo="";
+
+window.criarSala = async function(){
+salaCodigo = Math.random().toString(36).substring(2,6).toUpperCase();
+
+await setDoc(doc(db,"salas",salaCodigo),{
+perguntas: perguntasAleatorias(),
+jogadores:{},
+estado:"esperando"
 });
 
-iniciarTempo();
+alert("Código da sala: "+salaCodigo);
+escutarSala();
 }
 
-// resposta
-window.resp=function(i,btn){
-
-clearInterval(intervalo);
-document.querySelectorAll("button").forEach(b=>b.disabled=true);
-
-if(i===lista[atual][2]){
-combo++;
-acertos++;
-dados.xp+=5+(combo*3);
-btn.classList.add("correct");
-acerto.play();
-navigator.vibrate(100);
-quiz.innerHTML+=`<p style="color:lime">🔥 PERFEITO</p>`;
-}else{
-btn.classList.add("wrong");
-erro.play();
-navigator.vibrate(300);
-quiz.innerHTML+=`<p style="color:red">💀 ERROU FEIO</p>`;
-perdeVida();
-return;
+window.entrarSala = async function(){
+salaCodigo = prompt("Código da sala:");
+escutarSala();
 }
 
-atual++;
-setTimeout(proxima,600);
+function escutarSala(){
+onSnapshot(doc(db,"salas",salaCodigo),snap=>{
+let sala=snap.data();
+
+if(!sala) return;
+
+if(!sala.jogadores[uid]){
+sala.jogadores[uid]={nome:dados.nome,pontos:0};
+updateDoc(doc(db,"salas",salaCodigo),{jogadores:sala.jogadores});
 }
 
-// perder vida
-function perdeVida(){
-vidas--;
-combo=0;
-
-if(vidas<=0){
-quiz.innerHTML="<h2>💀 GAME OVER</h2><button onclick='entrar()'>Menu</button>";
-return;
+if(Object.keys(sala.jogadores).length>=2 && sala.estado==="esperando"){
+updateDoc(doc(db,"salas",salaCodigo),{estado:"jogando",atual:0});
 }
 
-atual++;
-setTimeout(proxima,600);
+if(sala.estado==="jogando"){
+multiplayerLoad(sala);
+}
+});
 }
 
-// finalizar
-async function finalizar(){
-let pct=Math.round((acertos/lista.length)*100);
-dados.progresso[temaAtual]=pct;
+function multiplayerLoad(sala){
+let q=sala.perguntas[sala.atual];
 
-if(dados.xp>=dados.nivel*100){
-dados.nivel++; dados.xp=0;
+quiz.innerHTML=`<h3>${q[0]}</h3>`;
+
+q[1].forEach((op,i)=>{
+quiz.innerHTML+=`<button onclick="respMulti(${i})">${op}</button>`;
+});
 }
 
-await salvar();
+window.respMulti = async function(i){
+let ref=doc(db,"salas",salaCodigo);
+let snap=await getDoc(ref);
+let sala=snap.data();
 
-quiz.innerHTML=`<h2>${pct}%</h2><button onclick="entrar()">Menu</button>`;
+if(i===sala.perguntas[sala.atual][2]){
+sala.jogadores[uid].pontos+=10;
 }
 
-// ranking sem duplicar
-async function carregarRanking(){
+sala.atual++;
+
+if(sala.atual>=10){
+sala.estado="fim";
+}
+
+await updateDoc(ref,sala);
+
+if(sala.estado==="fim"){
+let ranking=Object.values(sala.jogadores).sort((a,b)=>b.pontos-a.pontos);
+quiz.innerHTML=`🏆 Vencedor: ${ranking[0].nome}`;
+}
+}
+
+// ================= RANKING =================
+function carregarRanking(){
+onSnapshot(collection(db,"usuarios"),snap=>{
+let lista=[];
+snap.forEach(d=>lista.push({...d.data(),id:d.id}));
+
+let unicos = Object.values(lista.reduce((acc,u)=>{acc[u.id]=u;return acc;},{}));
+
+unicos.sort((a,b)=>b.nivel-b.nivel || b.xp-a.xp);
+
+ranking.innerHTML="<h3>🏆 Ranking</h3>"+
+unicos.slice(0,5).map(u=>`<p>${u.nome} - ${u.xp}</p>`).join("");
+});
+}
+
+// ================= ADMIN =================
+window.painelAdmin = async function(){
 let snap=await getDocs(collection(db,"usuarios"));
-let nomes={};
+let html="<h3>ADMIN</h3>";
 
 snap.forEach(d=>{
 let u=d.data();
-nomes[u.nome]=u;
-});
-
-let lista=Object.values(nomes);
-lista.sort((a,b)=>b.nivel-a.nivel || b.xp-a.xp);
-
-ranking.innerHTML="<h3>🏆 Ranking</h3>"+lista.slice(0,5).map(u=>`<p>${u.nome} - Nv ${u.nivel}</p>`).join("");
-}
-
-// admin
-window.painelAdmin = async function(){
-let snap = await getDocs(collection(db,"usuarios"));
-let html="<h3>ADMIN</h3>";
-
-snap.forEach(docSnap=>{
-let u=docSnap.data();
-let id=docSnap.id;
-
-html+=`
-<div>
-${u.nome} | Nv ${u.nivel} | XP ${u.xp}
-<button onclick="addXP('${id}',50)">+XP</button>
-<button onclick="reset('${id}')">Reset</button>
-</div>
-`;
+html+=`<div>${u.nome} XP:${u.xp}</div>`;
 });
 
 admin.innerHTML=html;
-}
-
-window.addXP = async function(id,v){
-let ref=doc(db,"usuarios",id);
-let snap=await getDoc(ref);
-await updateDoc(ref,{xp:(snap.data().xp||0)+v});
-painelAdmin();
-}
-
-window.reset = async function(id){
-await updateDoc(doc(db,"usuarios",id),{xp:0,nivel:1});
-painelAdmin();
-}
-
-// multiplayer
-window.multi=function(){
-
-let p1=prompt("Jogador 1:");
-let p2=prompt("Jogador 2:");
-
-let turno=0, pontos=[0,0];
-let perguntas=shuffle([...temas.t1]);
-
-function rodada(){
-
-if(!perguntas.length){
-let vencedor = pontos[0]>pontos[1]?p1:p2;
-
-quiz.innerHTML=`
-<h2>🏆 ${vencedor} venceu!</h2>
-<p>${p1}: ${pontos[0]} | ${p2}: ${pontos[1]}</p>
-<button onclick="entrar()">Menu</button>
-`;
-return;
-}
-
-let q=perguntas.pop();
-
-quiz.innerHTML=`
-<h3>🎮 Turno: ${[p1,p2][turno]}</h3>
-<h4>${q[0]}</h4>
-`;
-
-q[1].forEach((op,i)=>{
-quiz.innerHTML+=`<button onclick="jogada(${i},${q[2]})">${op}</button>`;
-});
-}
-
-window.jogada=function(i,c){
-document.querySelectorAll("button").forEach(b=>b.disabled=true);
-
-if(i===c){
-pontos[turno]++;
-acerto.play();
-}else{
-erro.play();
-}
-
-turno=1-turno;
-setTimeout(rodada,600);
-}
-
-rodada();
 }
 
 </script>
