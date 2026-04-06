@@ -3,140 +3,94 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quiz Bíblico PRO</title>
+<title>Quiz Bíblico ABSURDO</title>
 
 <style>
-body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-button { margin:5px; padding:10px; width:90%; max-width:400px; border-radius:8px; border:none; }
-.correct{background:#2ecc71;}
-.wrong{background:#e74c3c;}
-.locked{background:#444;color:#888;}
+body { font-family: Arial; text-align:center; background:#0b0b0b; color:#fff; }
+
+button {
+ margin:5px;
+ padding:12px;
+ width:90%;
+ max-width:400px;
+ border-radius:10px;
+ border:none;
+ font-size:16px;
+}
+
+.correct{background:#00c853;}
+.wrong{background:#d50000;}
+.locked{background:#333;color:#777;}
 .admin{background:orange;}
+
+.top{
+margin:10px;
+padding:10px;
+border:1px solid #444;
+border-radius:10px;
+}
+
 </style>
 </head>
 
 <body>
 
-<h2>📖 Quiz Bíblico PRO</h2>
+<h2>📖 Quiz Bíblico ABSURDO</h2>
 
 <input id="nome" placeholder="Seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
-<button onclick="loginAdmin()">Admin</button>
 
 <div id="menu"></div>
 <div id="quiz"></div>
 <div id="ranking"></div>
-<div id="admin"></div>
 
-<script type="module">
+<audio id="acerto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_115b9b0c3f.mp3"></audio>
+<audio id="erro" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_4c8a9d1b1f.mp3"></audio>
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, getDocs, collection, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+<script>
 
-const firebaseConfig = {
- apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
- authDomain: "quiz-biblico-e1362.firebaseapp.com",
- projectId: "quiz-biblico-e1362"
-};
+let dados={nome:"",xp:0,nivel:1,liga:"Bronze",streak:0};
+let vidas=3,combo=0,tempo=30,intervalo;
 
-const ADMIN_UID = "Pmbm5BqKNRXu3gXI4EPj5LrddNC3";
+let perguntas = [
+["Qual NÃO é objetivo da Bíblia?",["Ensinar","Guiar","Confundir"],2],
+["Mateus 7:7 ensina:",["Buscar","Esperar","Ignorar"],0],
+["Romanos 15:4 fala de:",["Esperança","Medo","Confusão"],0],
+["Ignorar perguntas causa:",["Estagnação","Fé","Alegria"],0],
+["Entender exige:",["Esforço","Sorte","Nada"],0],
+["A Bíblia ajuda:",["Vida prática","Nada","Só teoria"],0],
+["Perguntar mostra:",["Interesse","Erro","Fraqueza"],0],
+["Estudo gera:",["Mudança","Nada","Orgulho"],0],
+["A Bíblia é:",["Proveitosa","Confusa","Limitada"],0],
+["Dúvida sincera leva a:",["Aprender","Desviar","Parar"],0]
+];
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+// DUPLICA PARA FICAR LONGO (SIMULA 120)
+perguntas = Array(12).fill(perguntas).flat();
 
-let uid=null, dados={}, combo=0, vidas=3, tempo=30, intervalo=null;
-
-// LOGIN
-window.loginAdmin = async function(){
-let email=prompt("Email:");
-let senha=prompt("Senha:");
-let cred=await signInWithEmailAndPassword(auth,email,senha);
-uid=cred.user.uid;
-entrar();
-}
-
-const user = await signInAnonymously(auth);
-if(!uid) uid=user.user.uid;
-
-// SALVAR
-async function salvar(){
-await setDoc(doc(db,"usuarios",uid),dados);
-}
+let lista=[], atual=0, acertos=0;
 
 // ENTRAR
-window.entrar = async function(){
-
-let nome=document.getElementById("nome").value;
-if(!nome) return alert("Digite nome");
-
-let ref=doc(db,"usuarios",uid);
-let snap=await getDoc(ref);
-
-if(snap.exists()){
-dados=snap.data();
-}else{
-dados={nome,xp:0,nivel:1,progresso:{}};
-}
-
-await salvar();
+function entrar(){
+dados.nome=document.getElementById("nome").value;
+if(!dados.nome) return alert("Digite nome");
 
 menu.innerHTML=`
 <h3>${dados.nome}</h3>
-⭐ Nv ${dados.nivel} | XP ${dados.xp}<br><br>
-
-${[...Array(12)].map((_,i)=>{
-let t="t"+(i+1);
-let prev="t"+i;
-return `<button onclick="start('${t}')" ${(i>0 && (dados.progresso[prev]||0)<80)?'class="locked"':''}>Lição ${i+1}</button>`;
-}).join("")}
-
-${uid===ADMIN_UID ? `<button class="admin" onclick="painelAdmin()">ADMIN</button>` : ""}
+⭐ Nv ${dados.nivel} | XP ${dados.xp}<br>
+🏆 Liga: ${dados.liga}<br>
+<button onclick="start()">Jogar</button>
 `;
-
-carregarRanking();
 }
 
-// 🔥 BASE REAL (EXEMPLO FORTE)
-let perguntasBase = [
-["Qual NÃO é objetivo da Bíblia?",["Ensinar","Guiar","Confundir"],2],
-["Mateus 7:7 ensina:",["Buscar","Esperar","Ignorar"],0],
-["A dúvida sincera leva a:",["Aprender","Desviar","Parar"],0],
-["Romanos 15:4 fala de:",["Esperança","Medo","Confusão"],0],
-["Ignorar perguntas causa:",["Estagnação","Fé","Alegria"],0],
-["A Bíblia ajuda:",["Na vida prática","Nada","Só teoria"],0],
-["Entender exige:",["Esforço","Sorte","Nada"],0],
-["Perguntar demonstra:",["Interesse","Erro","Fraqueza"],0],
-["Estudo leva a:",["Mudança","Nada","Orgulho"],0],
-["A Bíblia é:",["Proveitosa","Confusa","Limitada"],0]
-];
-
-// GERAR 120 DIFERENTES
-function gerarPerguntas(){
-let temas={};
-for(let i=1;i<=12;i++){
-temas["t"+i]=perguntasBase.map(q=>{
-let op=[...q[1]].sort(()=>Math.random()-0.5);
-return [q[0]+" ("+i+")",op,op.indexOf(q[1][q[2]])];
-});
-}
-return temas;
-}
-
-let temas = gerarPerguntas();
-
-// QUIZ
-let lista=[], atual=0, acertos=0, temaAtual="";
-
-window.start=function(t){
-temaAtual=t;
-lista=temas[t];
+// INICIAR
+function start(){
+lista = perguntas.sort(()=>Math.random()-0.5);
 atual=0;
 acertos=0;
-combo=0;
 vidas=3;
-menu.innerHTML="";
+combo=0;
+dados.streak=0;
 load();
 }
 
@@ -145,54 +99,62 @@ let q=lista[atual];
 tempo=30;
 
 quiz.innerHTML=`
+<div class="top">
+❤️ ${vidas} | 🔥 ${combo} | ⚡ Streak ${dados.streak}<br>
+⏱️ <span id="tempo">${tempo}</span>
+</div>
+
 <h3>${q[0]}</h3>
-❤️ Vidas: ${vidas} | 🔥 Combo: ${combo}<br>
-⏱️ <span id="tempo">${tempo}</span>s<br><br>
 `;
 
 q[1].forEach((op,i)=>{
 quiz.innerHTML+=`<button onclick="resp(${i},this)">${op}</button>`;
 });
 
-iniciarTempo();
+timer();
 }
 
-function iniciarTempo(){
+function timer(){
 clearInterval(intervalo);
 intervalo=setInterval(()=>{
 tempo--;
+tempo<=0 && erro();
 document.getElementById("tempo").innerText=tempo;
-
-if(tempo<=0){
-clearInterval(intervalo);
-erro();
-}
 },1000);
 }
 
-function erro(){
-vidas--;
-combo=0;
-
-if(vidas<=0){
-gameOver();
-return;
-}
-
-proxima();
-}
-
-window.resp=function(i,btn){
+function resp(i,btn){
 clearInterval(intervalo);
 
 if(i===lista[atual][2]){
-combo++;
-dados.xp+=10+(combo*3);
-acertos++;
-btn.classList.add("correct");
+acerto(btn);
 }else{
-btn.classList.add("wrong");
-erro();
+erro(btn);
+}
+}
+
+function acerto(btn){
+btn.classList.add("correct");
+document.getElementById("acerto").play();
+
+combo++;
+dados.streak++;
+dados.xp+=10+(combo*3);
+
+acertos++;
+proxima();
+}
+
+function erro(btn){
+if(btn) btn.classList.add("wrong");
+document.getElementById("erro").play();
+
+vidas--;
+combo=0;
+dados.streak=0;
+
+if(vidas<=0){
+gameOver();
 return;
 }
 
@@ -205,53 +167,37 @@ setTimeout(()=>{
 if(atual<lista.length){
 load();
 }else{
-finalizar();
+final();
 }
 },400);
 }
 
-async function finalizar(){
+function final(){
 let pct=Math.round((acertos/lista.length)*100);
-dados.progresso[temaAtual]=pct;
 
 if(dados.xp>=dados.nivel*100){
-dados.xp=0;
 dados.nivel++;
-alert("🔥 LEVEL UP!");
+dados.xp=0;
 }
 
-await salvar();
-quiz.innerHTML=`<h2>${pct}%</h2><button onclick="entrar()">Menu</button>`;
+atualizarLiga();
+
+quiz.innerHTML=`
+<h2>${pct}%</h2>
+<p>Liga: ${dados.liga}</p>
+<button onclick="entrar()">Menu</button>
+`;
+}
+
+function atualizarLiga(){
+if(dados.nivel>=10) dados.liga="Lendário 🔥";
+else if(dados.nivel>=7) dados.liga="Ouro 🥇";
+else if(dados.nivel>=4) dados.liga="Prata 🥈";
+else dados.liga="Bronze 🥉";
 }
 
 function gameOver(){
 quiz.innerHTML=`<h2>💀 GAME OVER</h2><button onclick="entrar()">Menu</button>`;
-}
-
-// RANKING FIX
-async function carregarRanking(){
-let snap=await getDocs(collection(db,"usuarios"));
-let mapa=new Map();
-
-snap.forEach(d=>mapa.set(d.id,d.data()));
-
-let lista=[...mapa.values()];
-lista.sort((a,b)=>b.nivel - a.nivel || b.xp - a.xp);
-
-ranking.innerHTML="<h3>🏆 Ranking</h3>"+lista.slice(0,5).map(u=>`<p>${u.nome} - Nv ${u.nivel}</p>`).join("");
-}
-
-// ADMIN
-window.painelAdmin=async function(){
-let snap=await getDocs(collection(db,"usuarios"));
-let html="<h3>ADMIN</h3>";
-
-snap.forEach(d=>{
-let u=d.data();
-html+=`<div class="card">${u.nome} Nv ${u.nivel}</div>`;
-});
-
-admin.innerHTML=html;
 }
 
 </script>
