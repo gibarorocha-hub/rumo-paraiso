@@ -7,7 +7,16 @@
 
 <style>
 body { font-family: Arial; text-align:center; background:#111; color:#fff; }
-button { margin:5px; padding:10px; width:90%; max-width:400px; border-radius:8px; border:none;}
+
+button {
+ margin:5px;
+ padding:10px;
+ width:90%;
+ max-width:400px;
+ border-radius:8px;
+ border:none;
+}
+
 .locked{background:#444;color:#888;}
 .correct{background:green;}
 .wrong{background:red;}
@@ -21,6 +30,7 @@ button { margin:5px; padding:10px; width:90%; max-width:400px; border-radius:8px
 
 <input id="nome" placeholder="Seu nome"><br><br>
 <button onclick="entrar()">Entrar</button>
+<button onclick="loginAdmin()">Login Admin</button>
 
 <div id="menu"></div>
 <div id="quiz"></div>
@@ -31,7 +41,7 @@ button { margin:5px; padding:10px; width:90%; max-width:400px; border-radius:8px
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, getDocs, collection } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, signInAnonymously, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDiOAN7c2ciY4KReeImKs7OhKY1GUTjcvM",
@@ -39,21 +49,44 @@ const firebaseConfig = {
   projectId: "quiz-biblico-e1362"
 };
 
-const ADMIN_UID = "COLOQUE_SEU_UID_AQUI";
+// ✅ SEU UID JÁ CONFIGURADO
+const ADMIN_UID = "Pmbm5BqKNRXu3gXI4EPj5LrddNC3";
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-const user = await signInAnonymously(auth);
-const uid = user.user.uid;
-
+let uid = null;
 let dados = {};
 
+// LOGIN ADMIN
+window.loginAdmin = async function(){
+
+let email = prompt("Email:");
+let senha = prompt("Senha:");
+
+try{
+let cred = await signInWithEmailAndPassword(auth,email,senha);
+uid = cred.user.uid;
+
+alert("Logado como ADMIN");
+entrar();
+
+}catch(e){
+alert("Erro no login");
+}
+}
+
+// LOGIN ANÔNIMO
+const user = await signInAnonymously(auth);
+if(!uid) uid = user.user.uid;
+
+// SALVAR
 async function salvar(){
   await setDoc(doc(db,"usuarios",uid),dados);
 }
 
+// ENTRAR
 window.entrar = async function(){
 
 let nome = document.getElementById("nome").value;
@@ -81,13 +114,13 @@ let prev="t"+i;
 return `<button onclick="start('${t}')" ${(i>0 && (dados.progresso[prev]||0)<80)?'class="locked"':''}>Lição ${i+1}</button>`;
 }).join("")}
 
-${uid===ADMIN_UID ? `<button class="admin" onclick="painelAdmin()">ADMIN</button>` : ""}
+${uid===ADMIN_UID ? `<button class="admin" onclick="painelAdmin()">PAINEL ADMIN</button>` : ""}
 `;
 
 carregarRanking();
 }
 
-// PERGUNTAS (leve e otimizado)
+// PERGUNTAS
 let temas = {};
 
 for(let i=1;i<=12;i++){
@@ -95,13 +128,13 @@ temas["t"+i]=[
 ["Segundo João 17:3, o que leva à vida eterna?",["Conhecer a Deus","Dinheiro","Sorte"],0],
 ["Salmo 37:29 fala sobre:",["Vida eterna na terra","Fim da terra","Só céu"],0],
 ["O que Tiago 4:8 ensina?",["Deus se aproxima","Nada acontece","Castigo"],0],
-["Segundo Provérbios 2:5 precisamos:",["Esforço","Sorte","Ignorar"],0],
-["Qual é o caminho correto segundo Mateus 7?",["Apertado","Fácil","Qualquer um"],0],
-["O que Hebreus 11:6 diz?",["Fé é essencial","Nada importa","Tudo fácil"],0],
-["Romanos 12:2 fala sobre:",["Mudar mente","Seguir mundo","Ignorar"],0],
+["Provérbios 2:5 mostra necessidade de:",["Esforço","Sorte","Ignorar"],0],
+["Mateus 7 fala de caminho:",["Apertado","Fácil","Qualquer"],0],
+["Hebreus 11:6 ensina:",["Fé essencial","Nada importa","Tudo fácil"],0],
+["Romanos 12:2 fala de:",["Mudar mente","Seguir mundo","Ignorar"],0],
 ["João 13:34 ensina:",["Amor","Dinheiro","Poder"],0],
-["Eclesiastes 12:13 resume:",["Temer a Deus","Viver livre","Ignorar"],0],
-["Aplicar a Bíblia resulta em:",["Melhora gradual","Nada","Piora"],0]
+["Eclesiastes 12:13 resume:",["Temer Deus","Viver livre","Ignorar"],0],
+["Aplicar Bíblia resulta em:",["Melhora","Nada","Piora"],0]
 ];
 }
 
@@ -157,11 +190,13 @@ quiz.innerHTML=`<h2>${pct}%</h2><button onclick="entrar()">Menu</button>`;
 
 }
 
+// RANKING
 async function carregarRanking(){
 let snap = await getDocs(collection(db,"usuarios"));
 let lista=[];
 snap.forEach(d=>lista.push(d.data()));
 lista.sort((a,b)=>b.xp-a.xp);
+
 ranking.innerHTML="<h3>Ranking</h3>"+lista.slice(0,5).map(u=>`<p>${u.nome} - ${u.xp}</p>`).join("");
 }
 
@@ -169,7 +204,7 @@ ranking.innerHTML="<h3>Ranking</h3>"+lista.slice(0,5).map(u=>`<p>${u.nome} - ${u
 window.painelAdmin = async function(){
 
 let snap = await getDocs(collection(db,"usuarios"));
-let html="<h3>ADMIN</h3>";
+let html="<h3>👑 ADMIN</h3>";
 
 snap.forEach(doc=>{
 let u=doc.data();
